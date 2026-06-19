@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1554" dy="884" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="1">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ======================================================== -->
+    <!-- TITLE -->
+    <!-- ======================================================== -->
+    <mxCell id="title" value="enterpriseGPT (Knowledge IQ) — System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
+      <mxGeometry x="300" y="20" width="1050" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- USER INTERFACE LAYER -->
+    <!-- ======================================================== -->
+    <mxCell id="ui_container" value="User Interface" style="swimlane;fontStyle=1;fontSize=11;fillColor=#e8f4f8;strokeColor=#4a90d9;fontColor=#1a1a2e;startSize=30;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="80" width="560" height="100" as="geometry" />
+    </mxCell>
+
+    <mxCell id="gemini_enterprise" value="&lt;b&gt;Gemini AI Enterprise&lt;/b&gt;&lt;br/&gt;Agent Builder UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#4a90d9;fontSize=11;" vertex="1" parent="ui_container">
+      <mxGeometry x="30" y="38" width="220" height="50" as="geometry" />
+    </mxCell>
+
+    <mxCell id="adk_web" value="&lt;b&gt;ADK Web UI&lt;/b&gt;&lt;br/&gt;localhost:8082 (local dev)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#4a90d9;fontSize=11;" vertex="1" parent="ui_container">
+      <mxGeometry x="310" y="38" width="220" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- VERTEX AI AGENT ENGINE -->
+    <!-- ======================================================== -->
+    <mxCell id="agent_engine" value="Vertex AI Agent Engine" style="swimlane;fontStyle=1;fontSize=11;fillColor=#e6f3e6;strokeColor=#34A853;fontColor=#1a1a2e;startSize=30;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="230" width="820" height="150" as="geometry" />
+    </mxCell>
+
+    <mxCell id="agent_core" value="&lt;b&gt;Agent&lt;/b&gt;&lt;br/&gt;Gemini 2.5 Flash&lt;br/&gt;(ADK Agent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=11;" vertex="1" parent="agent_engine">
+      <mxGeometry x="30" y="40" width="190" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="dynamic_prompt" value="&lt;b&gt;build_instruction()&lt;/b&gt;&lt;br/&gt;Dynamic callable prompt&lt;br/&gt;injects tool_status + datetime" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=11;" vertex="1" parent="agent_engine">
+      <mxGeometry x="260" y="40" width="220" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="config_loader" value="&lt;b&gt;config.py&lt;/b&gt;&lt;br/&gt;AgentConfig + TTL cache&lt;br/&gt;60 second refresh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=11;" vertex="1" parent="agent_engine">
+      <mxGeometry x="530" y="40" width="220" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="registry" value="&lt;b&gt;registry.py&lt;/b&gt;&lt;br/&gt;37 tools registered" style="shape=mxgraph.cisco.routers.router;html=1;pointerEvents=1;dashed=0;fillColor=#d5e8d4;strokeColor=#34A853;sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[1,1,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];fontSize=11;" vertex="1" parent="agent_engine">
+      <mxGeometry x="760" y="50" width="40" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- GCS BUCKET -->
+    <!-- ======================================================== -->
+    <mxCell id="gcs_container" value="GCS Bucket" style="swimlane;fontStyle=1;fontSize=11;fillColor=#fff9e6;strokeColor=#FBBC05;fontColor=#1a1a2e;startSize=30;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="960" y="80" width="310" height="200" as="geometry" />
+    </mxCell>
+
+    <mxCell id="gcs_config" value="&lt;b&gt;tools_config.json&lt;/b&gt;&lt;br/&gt;Connector config + secrets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#FBBC05;fontSize=11;" vertex="1" parent="gcs_container">
+      <mxGeometry x="25" y="40" width="260" height="45" as="geometry" />
+    </mxCell>
+
+    <mxCell id="gcs_prompt" value="&lt;b&gt;prompt.txt&lt;/b&gt;&lt;br/&gt;System prompt (editable)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#FBBC05;fontSize=11;" vertex="1" parent="gcs_container">
+      <mxGeometry x="25" y="98" width="260" height="45" as="geometry" />
+    </mxCell>
+
+    <mxCell id="gcs_state" value="&lt;b&gt;sync-state.json&lt;/b&gt;&lt;br/&gt;Delta tokens + file→RAG map" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#FBBC05;fontSize=11;" vertex="1" parent="gcs_container">
+      <mxGeometry x="25" y="155" width="260" height="35" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- TOOLS LAYER -->
+    <!-- ======================================================== -->
+    <mxCell id="tools_container" value="Tools (new_folder_structure/tools/)" style="swimlane;fontStyle=1;fontSize=11;fillColor=#f0f7f0;strokeColor=#34A853;fontColor=#1a1a2e;startSize=30;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="430" width="820" height="130" as="geometry" />
+    </mxCell>
+
+    <mxCell id="tool_rag" value="&lt;b&gt;RAG&lt;/b&gt;&lt;br/&gt;5 tools&lt;br/&gt;rag/ user_rag/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="tools_container">
+      <mxGeometry x="15" y="38" width="110" height="72" as="geometry" />
+    </mxCell>
+
+    <mxCell id="tool_msft" value="&lt;b&gt;Microsoft&lt;/b&gt;&lt;br/&gt;12 tools&lt;br/&gt;microsoft/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="tools_container">
+      <mxGeometry x="145" y="38" width="110" height="72" as="geometry" />
+    </mxCell>
+
+    <mxCell id="tool_gh" value="&lt;b&gt;GitHub&lt;/b&gt;&lt;br/&gt;10 tools&lt;br/&gt;github/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="tools_container">
+      <mxGeometry x="275" y="38" width="110" height="72" as="geometry" />
+    </mxCell>
+
+    <mxCell id="tool_goog" value="&lt;b&gt;Google&lt;/b&gt;&lt;br/&gt;3 tools&lt;br/&gt;google/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="tools_container">
+      <mxGeometry x="405" y="38" width="110" height="72" as="geometry" />
+    </mxCell>
+
+    <mxCell id="tool_atls" value="&lt;b&gt;Atlassian&lt;/b&gt;&lt;br/&gt;4 tools&lt;br/&gt;atlassian/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="tools_container">
+      <mxGeometry x="535" y="38" width="110" height="72" as="geometry" />
+    </mxCell>
+
+    <mxCell id="tool_a2a" value="&lt;b&gt;A2A&lt;/b&gt;&lt;br/&gt;3 tools&lt;br/&gt;a2a/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="tools_container">
+      <mxGeometry x="665" y="38" width="110" height="72" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- EXTERNAL APIs -->
+    <!-- ======================================================== -->
+    <mxCell id="ext_rag" value="&lt;b&gt;Vertex AI RAG Corpus&lt;/b&gt;&lt;br/&gt;Vector search + ingestion&lt;br/&gt;text-embedding-004" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#EA4335;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="80" y="620" width="190" height="70" as="geometry" />
+    </mxCell>
+
+    <mxCell id="ext_graph" value="&lt;b&gt;Microsoft Graph API&lt;/b&gt;&lt;br/&gt;SharePoint delta sync&lt;br/&gt;MSAL app-only auth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#EA4335;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="290" y="620" width="190" height="70" as="geometry" />
+    </mxCell>
+
+    <mxCell id="ext_github" value="&lt;b&gt;GitHub REST API&lt;/b&gt;&lt;br/&gt;Repos, code, PRs, issues&lt;br/&gt;PAT auth (PyGithub)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#EA4335;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="500" y="620" width="190" height="70" as="geometry" />
+    </mxCell>
+
+    <mxCell id="ext_gapi" value="&lt;b&gt;Google APIs&lt;/b&gt;&lt;br/&gt;Gmail + Drive&lt;br/&gt;Service account DWD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#EA4335;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="710" y="620" width="190" height="70" as="geometry" />
+    </mxCell>
+
+    <mxCell id="ext_atls" value="&lt;b&gt;Atlassian Cloud API&lt;/b&gt;&lt;br/&gt;Jira JQL + Confluence CQL&lt;br/&gt;API token auth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#EA4335;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="920" y="620" width="190" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- A2A SUB-AGENTS -->
+    <!-- ======================================================== -->
+    <mxCell id="a2a_container" value="A2A Sub-Agents (Vertex AI Agent Engine)" style="swimlane;fontStyle=1;fontSize=11;fillColor=#f3e6f7;strokeColor=#9C27B0;fontColor=#1a1a2e;startSize=30;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="960" y="300" width="310" height="250" as="geometry" />
+    </mxCell>
+
+    <mxCell id="crm_agent" value="&lt;b&gt;CRM Agent&lt;/b&gt;&lt;br/&gt;HubSpot contacts, deals&lt;br/&gt;notes, pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9C27B0;fontSize=11;" vertex="1" parent="a2a_container">
+      <mxGeometry x="25" y="40" width="260" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="enr_agent" value="&lt;b&gt;Enrichment Agent&lt;/b&gt;&lt;br/&gt;Apollo / Clearbit firmographics&lt;br/&gt;company + contact data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9C27B0;fontSize=11;" vertex="1" parent="a2a_container">
+      <mxGeometry x="25" y="110" width="260" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="scraper_agent" value="&lt;b&gt;Web Scraper Agent&lt;/b&gt;&lt;br/&gt;Fetch URL + index into&lt;br/&gt;RAG corpus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9C27B0;fontSize=11;" vertex="1" parent="a2a_container">
+      <mxGeometry x="25" y="180" width="260" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- SYNC SERVICE -->
+    <!-- ======================================================== -->
+    <mxCell id="sync_container" value="Scheduler / Sync Service (Cloud Run)" style="swimlane;fontStyle=1;fontSize=11;fillColor=#fce4ec;strokeColor=#c2185b;fontColor=#1a1a2e;startSize=30;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="1300" y="230" width="310" height="270" as="geometry" />
+    </mxCell>
+
+    <mxCell id="cloud_scheduler" value="&lt;b&gt;Cloud Scheduler&lt;/b&gt;&lt;br/&gt;Cron: 0 * * * *&lt;br/&gt;(hourly trigger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f48fb1;strokeColor=#c2185b;fontSize=11;" vertex="1" parent="sync_container">
+      <mxGeometry x="25" y="40" width="260" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="cloud_run_job" value="&lt;b&gt;Cloud Run Job&lt;/b&gt;&lt;br/&gt;scheduler/job.py&lt;br/&gt;Full + delta sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f48fb1;strokeColor=#c2185b;fontSize=11;" vertex="1" parent="sync_container">
+      <mxGeometry x="25" y="115" width="260" height="55" as="geometry" />
+    </mxCell>
+
+    <mxCell id="cloud_run_webhook" value="&lt;b&gt;Cloud Run Service&lt;/b&gt;&lt;br/&gt;scheduler/webhook_server.py&lt;br/&gt;Real-time push events" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f48fb1;strokeColor=#c2185b;fontSize=11;" vertex="1" parent="sync_container">
+      <mxGeometry x="25" y="190" width="260" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- EDGES / ARROWS -->
+    <!-- ======================================================== -->
+
+    <!-- User → Agent Engine -->
+    <mxCell id="e1" value="REST / SSE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#4a90d9;fontColor=#4a90d9;fontSize=10;" edge="1" source="gemini_enterprise" target="agent_engine" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e2" value="HTTP SSE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#4a90d9;fontColor=#4a90d9;fontSize=10;" edge="1" source="adk_web" target="agent_engine" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Agent Engine → Tools -->
+    <mxCell id="e3" value="tool calls" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#34A853;fontColor=#34A853;fontSize=10;" edge="1" source="agent_engine" target="tools_container" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Config → GCS tools_config -->
+    <mxCell id="e4" value="read 60s TTL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;strokeColor=#FBBC05;fontColor=#c9a204;fontSize=10;dashed=1;" edge="1" source="agent_engine" target="gcs_container" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Tools → External APIs -->
+    <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#EA4335;fontSize=10;" edge="1" source="tools_container" target="ext_rag" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.28;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#EA4335;fontSize=10;" edge="1" source="tools_container" target="ext_graph" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.46;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#EA4335;fontSize=10;" edge="1" source="tools_container" target="ext_github" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.64;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#EA4335;fontSize=10;" edge="1" source="tools_container" target="ext_gapi" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.76;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#EA4335;fontSize=10;" edge="1" source="tools_container" target="ext_atls" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- A2A tools → Sub-agents container -->
+    <mxCell id="e10" value="A2A REST" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9C27B0;fontColor=#9C27B0;fontSize=10;" edge="1" source="tool_a2a" target="a2a_container" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Sync Service edges -->
+    <mxCell id="e11" value="trigger" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c2185b;fontColor=#c2185b;fontSize=10;" edge="1" source="cloud_scheduler" target="cloud_run_job" parent="sync_container">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Cloud Scheduler connects to Sync container first (shown by containment) -->
+    <!-- Sync Job → RAG Corpus -->
+    <mxCell id="e12" value="upload / delete docs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#c2185b;fontColor=#c2185b;fontSize=10;dashed=1;" edge="1" source="sync_container" target="ext_rag" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Sync Job reads GCS state -->
+    <mxCell id="e13" value="read/write state" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;strokeColor=#c2185b;fontColor=#c2185b;fontSize=10;dashed=1;" edge="1" source="sync_container" target="gcs_container" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Sync pulls from SharePoint + GitHub -->
+    <mxCell id="e14" value="delta sync" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#c2185b;fontColor=#c2185b;fontSize=10;dashed=1;" edge="1" source="sync_container" target="ext_graph" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <mxCell id="e15" value="SHA compare" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.8;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#c2185b;fontColor=#c2185b;fontSize=10;dashed=1;" edge="1" source="sync_container" target="ext_github" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ======================================================== -->
+    <!-- LEGEND -->
+    <!-- ======================================================== -->
+    <mxCell id="legend_container" value="Legend" style="swimlane;fontStyle=1;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;startSize=25;rounded=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="740" width="600" height="80" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg1" value="GCP / ADK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#34A853;fontSize=10;" vertex="1" parent="legend_container">
+      <mxGeometry x="10" y="32" width="100" height="32" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg2" value="Storage (GCS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#FBBC05;fontSize=10;" vertex="1" parent="legend_container">
+      <mxGeometry x="120" y="32" width="100" height="32" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg3" value="External APIs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#EA4335;fontSize=10;" vertex="1" parent="legend_container">
+      <mxGeometry x="230" y="32" width="100" height="32" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg4" value="A2A Sub-Agents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9C27B0;fontSize=10;" vertex="1" parent="legend_container">
+      <mxGeometry x="340" y="32" width="110" height="32" as="geometry" />
+    </mxCell>
+
+    <mxCell id="leg5" value="Sync Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f48fb1;strokeColor=#c2185b;fontSize=10;" vertex="1" parent="legend_container">
+      <mxGeometry x="460" y="32" width="110" height="32" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

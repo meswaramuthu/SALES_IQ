@@ -1,0 +1,104 @@
+{
+  "_comment": "Copy to tools_config.json, fill in your values, then run: make upload-config",
+  "_comment2": "Use 'env:VAR_NAME' for secrets — they are resolved from Vertex Agent Engine env vars.",
+
+  "tools": {
+    "rag": {
+      "enabled": true,
+      "config": {
+        "corpus": "projects/528271267622/locations/us-central1/ragCorpora/YOUR_CORPUS_ID",
+
+        "_comment_embedding": "Model used when creating a new corpus via create_rag_corpus tool",
+        "embedding_model": "publishers/google/models/text-embedding-004",
+        "_comment_multilingual": "For multilingual content use: publishers/google/models/text-multilingual-embedding-002",
+
+        "_comment_chunking": "Applied during document ingestion (add_document_to_rag, import_documents_from_gcs, etc.)",
+        "chunk_size": 512,
+        "chunk_overlap": 100,
+
+        "_comment_retrieval": "Applied during search_knowledge_base",
+        "similarity_top_k": 10,
+        "vector_distance_threshold": 0.6
+      }
+    },
+
+    "gmail": {
+      "enabled": false,
+      "config": {
+        "service_account_key_gcs_uri": "gs://YOUR_BUCKET/creds/gmail-sa.json",
+        "user_email": "user@yourdomain.com",
+        "max_results": 20
+      }
+    },
+
+    "gdrive": {
+      "enabled": false,
+      "config": {
+        "service_account_key_gcs_uri": "gs://YOUR_BUCKET/creds/gdrive-sa.json",
+        "user_email": "user@yourdomain.com"
+      }
+    },
+
+    "github": {
+      "enabled": false,
+      "config": {
+        "token": "env:GITHUB_TOKEN",
+        "default_org": "your-github-org"
+      }
+    },
+
+    "jira": {
+      "enabled": false,
+      "config": {
+        "url": "https://your-org.atlassian.net",
+        "username": "admin@your-org.com",
+        "api_token": "env:JIRA_API_TOKEN"
+      }
+    },
+
+    "confluence": {
+      "enabled": false,
+      "config": {
+        "url": "https://your-org.atlassian.net/wiki",
+        "username": "admin@your-org.com",
+        "api_token": "env:CONFLUENCE_API_TOKEN"
+      }
+    },
+
+    "sharepoint": {
+      "enabled": false,
+      "config": {
+        "_comment_auth": "Create an Azure AD App Registration with Application permissions: Sites.Read.All, Files.Read.All",
+        "tenant_id": "your-azure-ad-tenant-id",
+        "client_id": "your-app-registration-client-id",
+        "client_secret": "env:SHAREPOINT_CLIENT_SECRET",
+
+        "_comment_site": "Optional default site — used when tools are called without an explicit site_id",
+        "site_url": "https://your-org.sharepoint.com/sites/YourSite",
+
+        "_comment_region": "Region for the Microsoft Search API. Matches your M365 tenant region: NAM, EUR, or APC",
+        "search_region": "NAM",
+
+        "_comment_sync": "Set webhook_base_url to your sync webhook service URL to auto-register Graph subscriptions",
+        "webhook_base_url": "https://knowledge-iq-sync-webhook-xxxx-uc.a.run.app"
+      }
+    }
+  },
+
+  "_comment_sync_service": "The sync service (sync/) uses the credentials above + these env vars",
+  "_sync_env_vars": {
+    "SYNC_STATE_GCS_URI": "gs://your-bucket/knowledge-iq/sync-state.json",
+    "SYNC_SHAREPOINT_SITES": "https://your-org.sharepoint.com/sites/Engineering,https://your-org.sharepoint.com/sites/HR",
+    "SYNC_SP_CLIENT_STATE": "your-secret-string-for-graph-webhook-validation",
+    "SYNC_GITHUB_REPOS": "your-org/repo1,your-org/repo2",
+    "SYNC_GITHUB_FILE_EXTS": ".md,.txt,.py,.ts,.go,.yaml,.yml,.json,.rst,.html,.docx,.pdf",
+    "SYNC_GITHUB_WEBHOOK_SECRET": "your-github-webhook-hmac-secret",
+    "SYNC_SCHEDULE": "0 * * * *"
+  },
+
+
+  "prompt": {
+    "source": "gcs",
+    "gcs_uri": "gs://YOUR_BUCKET/knowledge-iq/prompt.txt"
+  }
+}

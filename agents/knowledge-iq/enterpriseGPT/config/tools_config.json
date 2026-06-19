@@ -1,0 +1,88 @@
+{
+  "prompt": {
+    "source": "gcs",
+    "gcs_uri": "gs://ninth-archway-496404-s2-knowledge-iq/knowledge-iq/prompt.txt"
+  },
+  "tools": {
+    "rag": {
+      "enabled": true,
+      "config": {
+        "corpus": "projects/528271267622/locations/us-west1/ragCorpora/4611686018427387904",
+        "embedding_model": "publishers/google/models/text-embedding-004",
+        "chunk_size": 512,
+        "chunk_overlap": 100,
+        "similarity_top_k": 10,
+        "vector_distance_threshold": 0.6,
+        "user_file_registry_uri": "gs://ninth-archway-496404-s2-knowledge-iq/knowledge-iq/user_file_registry.json",
+        "admin_access_control_enabled": true,
+        "admin_users": [
+          "abdul@stratova.ai",
+          "ms@stratova.ai",
+          "darrell@stratova.ai",
+          "keerthana@stratova.ai",
+          "meera@stratova.ai"
+        ]
+      }
+    },
+    "gemini_connectors": {
+      "enabled": true,
+      "config": {
+        "project_id": "ninth-archway-496404-s2",
+        "project_number": "528271267622",
+        "engine_id": "stratova-gemini_1779267526762",
+        "location": "global",
+        "max_results": 10
+      }
+    },
+    "gmail": {
+      "enabled": false,
+      "config": {}
+    },
+    "github": {
+      "enabled": true,
+      "config": {
+        "token": "env:GITHUB_TOKEN",
+        "default_org": "stratova-ai",
+        "default_repo": "stratova-ai/Stratova"
+      }
+    },
+    "jira": {
+      "enabled": false,
+      "config": {}
+    },
+    "confluence": {
+      "enabled": false,
+      "config": {}
+    },
+    "sharepoint": {
+      "enabled": true,
+      "config": {
+        "tenant_id": "1351575c-6ce0-40bf-832c-9d4098493fe9",
+        "client_id": "5a836003-6059-48d6-9a1c-831d0dc64647",
+        "client_secret": "env:SHAREPOINT_CLIENT_SECRET",
+        "site_url": "https://netorgft19462082.sharepoint.com/sites/Stratova",
+        "search_region": "APC"
+      }
+    }
+  },
+  "sub_agents": {
+    "crm_agent": {
+      "enabled": true,
+      "resource_name": "projects/528271267622/locations/us-central1/reasoningEngines/2729610733477167104",
+      "agent_card_url": "gs://stratova-platform/agents/laabu-crm-agent/agent-card/agent-card.json",
+      "description": "HubSpot CRM operations"
+    },
+    "enrichment_agent": {
+      "enabled": true,
+      "resource_name": "projects/528271267622/locations/us-central1/reasoningEngines/7601661105361911808",
+      "agent_card_url": "gs://stratova-platform/agents/laabu-enrichment-agent/agent-card/agent-card.json",
+      "description": "Company enrichment"
+    },
+    "web_scraper_agent": {
+      "enabled": true,
+      "resource_name": "projects/528271267622/locations/us-central1/reasoningEngines/2288257969994858496",
+      "agent_card_url": "gs://stratova-platform/agents/laabu-web-scraper-agent/agent-card/agent-card.json",
+      "description": "URL scraping"
+    }
+  }
+}
