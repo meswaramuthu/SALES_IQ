@@ -1,0 +1,58 @@
+name: Manage Gemini Enterprise App
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "GCP Project ID"
+        required: true
+        default: ""
+      app_name:
+        description: "App name"
+        required: true
+        default: "stratova-gemini"
+      location:
+        description: "Location"
+        required: true
+        default: "global"
+      action:
+        description: "Action to perform"
+        required: true
+        default: "create"
+        type: choice
+        options:
+          - create
+          - --delete
+
+jobs:
+  manage-gemini-app:
+    name: ${{ github.event.inputs.action == '--delete' && 'Delete' || 'Create' }} Gemini Enterprise App
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.project_id }}
+
+      - name: Make script executable
+        run: chmod +x deployment/create_gemini_enterprise_app.sh
+
+      - name: Run script
+        run: |
+          ./deployment/create_gemini_enterprise_app.sh \
+            "${{ github.event.inputs.project_id }}" \
+            "${{ github.event.inputs.app_name }}" \
+            "${{ github.event.inputs.location }}" \
+            "${{ github.event.inputs.action }}"

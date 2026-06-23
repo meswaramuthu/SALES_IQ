@@ -1,0 +1,59 @@
+name: Create Gemini Enterprise Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "GCP Project ID"
+        required: true
+        default: ""
+      engine_id:
+        description: "Gemini Enterprise App Engine ID (e.g. gemini-enterprise-app_1781176722287)"
+        required: true
+        default: ""
+      agent_name:
+        description: "Agent display name"
+        required: true
+        default: ""
+      description:
+        description: "Agent description"
+        required: true
+        default: ""
+      reasoning_engine:
+        description: "Reasoning Engine resource path (optional, e.g. projects/123/locations/us-central1/reasoningEngines/456)"
+        required: false
+        default: ""
+
+jobs:
+  create-agent:
+    name: Create Gemini Enterprise Agent
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.project_id }}
+
+      - name: Make script executable
+        run: chmod +x deployment/create_gemini_enterprise_agent.sh
+
+      - name: Create agent
+        run: |
+          ./deployment/create_gemini_enterprise_agent.sh \
+            "${{ github.event.inputs.project_id }}" \
+            "${{ github.event.inputs.engine_id }}" \
+            "${{ github.event.inputs.agent_name }}" \
+            "${{ github.event.inputs.description }}" \
+            "${{ github.event.inputs.reasoning_engine }}"

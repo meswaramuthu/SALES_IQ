@@ -1,0 +1,59 @@
+name: Setup GCP Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      gcp_project:
+        description: "GCP Project ID"
+        required: true
+        default: ""
+      gcp_region:
+        description: "GCP Region (e.g. us-central1)"
+        required: true
+        default: "us-central1"
+      gcs_bucket:
+        description: "GCS Bucket name to create"
+        required: true
+        default: ""
+      artifact_registry_repo:
+        description: "Artifact Registry repo name to create (e.g. laabu-repo)"
+        required: true
+        default: ""
+      gcs_bucket_location:
+        description: "GCS Bucket location (leave blank to use GCP Region)"
+        required: false
+        default: ""
+
+jobs:
+  setup-infra:
+    name: Setup GCP Infrastructure
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.gcp_project }}
+
+      - name: Make script executable
+        run: chmod +x deployment/setup_infra.sh
+
+      - name: Setup infrastructure
+        env:
+          GCP_PROJECT: ${{ github.event.inputs.gcp_project }}
+          GCP_REGION: ${{ github.event.inputs.gcp_region }}
+          GCS_BUCKET: ${{ github.event.inputs.gcs_bucket }}
+          ARTIFACT_REGISTRY_REPO: ${{ github.event.inputs.artifact_registry_repo }}
+          GCS_BUCKET_LOCATION: ${{ github.event.inputs.gcs_bucket_location }}
+        run: ./deployment/setup_infra.sh
