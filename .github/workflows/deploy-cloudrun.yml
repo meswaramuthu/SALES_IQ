@@ -19,6 +19,18 @@ on:
         description: "Artifact Registry repo URL (e.g. us-central1-docker.pkg.dev/project/repo)"
         required: false
         default: ""
+      rag_corpus:
+        description: "RAG Corpus resource path (e.g. projects/123/locations/us-west1/ragCorpora/456)"
+        required: true
+        default: ""
+      sync_state_gcs_uri:
+        description: "GCS URI for sync state (e.g. gs://bucket/knowledge-iq/sync-state.json)"
+        required: true
+        default: ""
+      tools_config_gcs_uri:
+        description: "GCS URI for tools config (e.g. gs://bucket/knowledge-iq/tools_config.json)"
+        required: true
+        default: ""
       cloudrun_flags:
         description: "Optional flags (--scheduler | --mcp). Leave blank to deploy all."
         required: false
@@ -55,4 +67,7 @@ jobs:
           GCP_REGION: ${{ github.event.inputs.gcp_region }}
           GCS_BUCKET: ${{ github.event.inputs.gcs_bucket }}
           ARTIFACT_REGISTRY_REPO: ${{ github.event.inputs.artifact_registry_repo }}
+          RAG_CORPUS: ${{ github.event.inputs.rag_corpus }}
+          SYNC_STATE_GCS_URI: ${{ github.event.inputs.sync_state_gcs_uri }}
+          TOOLS_CONFIG_GCS_URI: ${{ github.event.inputs.tools_config_gcs_uri }}
         run: ./deployment/deploy_cloudrun.sh ${{ github.event.inputs.cloudrun_flags }}
