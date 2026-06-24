@@ -10,6 +10,10 @@ REGION="${GCP_REGION:-${GOOGLE_CLOUD_LOCATION:-us-central1}}"
 SERVICE_NAME="stratova-rag-mcp"
 IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/stratova-mcp/${SERVICE_NAME}:latest"
 
+# RAG corpus resource name — required. Corpus location must match RAG_LOCATION (default us-west1).
+KNOWLEDGE_IQ_RAG_CORPUS="${KNOWLEDGE_IQ_RAG_CORPUS:-}"
+RAG_LOCATION="${RAG_LOCATION:-us-west1}"
+
 source "$REPO_ROOT/deployment/secret_utils.sh"
 
 echo "Authenticating Docker to Artifact Registry..."
@@ -29,7 +33,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --no-allow-unauthenticated \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID}" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},KNOWLEDGE_IQ_RAG_CORPUS=${KNOWLEDGE_IQ_RAG_CORPUS},RAG_LOCATION=${RAG_LOCATION}" \
   --memory 512Mi \
   --cpu 1 \
   --min-instances 0 \

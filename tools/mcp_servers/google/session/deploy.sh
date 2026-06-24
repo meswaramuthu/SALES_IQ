@@ -29,7 +29,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --no-allow-unauthenticated \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID}" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},FIRESTORE_PROJECT_ID=${PROJECT_ID}" \
   --memory 512Mi \
   --cpu 1 \
   --min-instances 0 \

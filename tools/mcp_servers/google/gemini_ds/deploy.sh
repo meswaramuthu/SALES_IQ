@@ -10,6 +10,13 @@ REGION="${GCP_REGION:-${GOOGLE_CLOUD_LOCATION:-us-central1}}"
 SERVICE_NAME="stratova-gemini-ds-mcp"
 IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/stratova-mcp/${SERVICE_NAME}:latest"
 
+# Gemini Enterprise Discovery Engine config
+GEMINI_ENGINE_ID="${GEMINI_ENGINE_ID:-stratova-gemini_1779267526762}"
+GEMINI_LOCATION="${GEMINI_LOCATION:-global}"
+# API keys — set these in env or retrieve from Secret Manager before running
+APOLLO_API_KEY="${APOLLO_API_KEY:-}"
+HUBSPOT_API_KEY="${HUBSPOT_API_KEY:-}"
+
 source "$REPO_ROOT/deployment/secret_utils.sh"
 
 echo "Authenticating Docker to Artifact Registry..."
@@ -29,7 +36,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --no-allow-unauthenticated \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID}" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GEMINI_PROJECT_ID=${PROJECT_ID},GEMINI_ENGINE_ID=${GEMINI_ENGINE_ID},GEMINI_LOCATION=${GEMINI_LOCATION},APOLLO_API_KEY=${APOLLO_API_KEY},HUBSPOT_API_KEY=${HUBSPOT_API_KEY}" \
   --memory 512Mi \
   --cpu 1 \
   --min-instances 0 \

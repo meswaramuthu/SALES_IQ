@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 mcp = FastMCP("stratova-gemini-ds", host="0.0.0.0", port=_PORT)
 
-PROJECT_ID = os.environ.get("GEMINI_PROJECT_ID", "ninth-archway-496404-s2")
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", os.environ.get("GEMINI_PROJECT_ID", "ninth-archway-496404-s2"))
 ENGINE_ID  = os.environ.get("GEMINI_ENGINE_ID", "stratova-gemini_1779267526762")
 LOCATION   = os.environ.get("GEMINI_LOCATION", "global")
 

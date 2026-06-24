@@ -5,17 +5,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
-source "$REPO_ROOT/deployment/secret_utils.sh"
-
 PROJECT_ID="${GCP_PROJECT:-${GOOGLE_CLOUD_PROJECT:-ninth-archway-496404-s2}}"
 REGION="${GCP_REGION:-${GOOGLE_CLOUD_LOCATION:-us-central1}}"
 SERVICE_NAME="stratova-calendar-mcp"
 IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/stratova-mcp/${SERVICE_NAME}:latest"
 
 # Required: SA key stored in GCS + calendar owner to impersonate via DWD
-GMAIL_SA_KEY_GCS_URI=${GMAIL_SA_KEY_GCS_URI:-gs://stratova-platform/creds/google-sa.json}
-GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL:-abdul@stratova.ai}
-SALESPERSON_CALENDAR_ID=${SALESPERSON_CALENDAR_ID:-primary}
+GMAIL_SA_KEY_GCS_URI="${GMAIL_SA_KEY_GCS_URI:-gs://stratova-platform/creds/google-sa.json}"
+GMAIL_USER_EMAIL="${GMAIL_USER_EMAIL:-abdul@stratova.ai}"
+SALESPERSON_CALENDAR_ID="${SALESPERSON_CALENDAR_ID:-primary}"
+
+source "$REPO_ROOT/deployment/secret_utils.sh"
 
 echo "Authenticating Docker to Artifact Registry..."
 gcloud auth application-default print-access-token | \
@@ -37,7 +37,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --project "${PROJECT_ID}" \
   --allow-unauthenticated \
   --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GMAIL_SA_KEY_GCS_URI=${GMAIL_SA_KEY_GCS_URI},GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL},SALESPERSON_CALENDAR_ID=${SALESPERSON_CALENDAR_ID}" \
-  --service-account "hr-scheduler@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --service-account "${CALENDAR_SERVICE_ACCOUNT:-knowledge-iq-agent@${PROJECT_ID}.iam.gserviceaccount.com}" \
   --memory 512Mi \
   --cpu 1 \
   --min-instances 0 \

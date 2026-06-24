@@ -10,6 +10,11 @@ REGION="${GCP_REGION:-${GOOGLE_CLOUD_LOCATION:-us-central1}}"
 SERVICE_NAME="stratova-email-mcp"
 IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/stratova-mcp/${SERVICE_NAME}:latest"
 
+# Required: SA key in GCS + sender address for domain-wide delegation
+GMAIL_SA_KEY_GCS_URI="${GMAIL_SA_KEY_GCS_URI:-gs://stratova-platform/creds/google-sa.json}"
+GMAIL_USER_EMAIL="${GMAIL_USER_EMAIL:-}"
+EMAIL_TEMPLATES_BUCKET="${EMAIL_TEMPLATES_BUCKET:-stratova-platform}"
+
 source "$REPO_ROOT/deployment/secret_utils.sh"
 
 echo "Authenticating Docker to Artifact Registry..."
@@ -29,7 +34,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --no-allow-unauthenticated \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID}" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GMAIL_SA_KEY_GCS_URI=${GMAIL_SA_KEY_GCS_URI},GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL},EMAIL_TEMPLATES_BUCKET=${EMAIL_TEMPLATES_BUCKET}" \
   --memory 512Mi \
   --cpu 1 \
   --min-instances 0 \

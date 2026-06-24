@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 mcp = FastMCP("stratova-web-scraper", host="0.0.0.0", port=_PORT)
 
-PROJECT_ID    = os.environ.get("GEMINI_PROJECT_ID", "ninth-archway-496404-s2")
+PROJECT_ID    = os.environ.get("GOOGLE_CLOUD_PROJECT", os.environ.get("GEMINI_PROJECT_ID", "ninth-archway-496404-s2"))
 DATA_STORE_ID = os.environ.get("WEB_SCRAPER_DS_ID", "")
 LOCATION      = os.environ.get("GEMINI_LOCATION", "global")
 _BASE = "https://discoveryengine.googleapis.com/v1"
