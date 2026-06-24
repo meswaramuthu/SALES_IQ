@@ -38,14 +38,31 @@ jobs:
         with:
           project_id: ${{ github.event.inputs.gcp_project }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          version: "latest"
+          python-version: "3.11"
+          cache: pip
 
       - name: Install Python dependencies
-        working-directory: agents/knowledge-iq/enterpriseGPT
-        run: uv sync --no-dev
+        run: |
+          pip install --upgrade pip
+          pip install \
+            "google-cloud-aiplatform[adk,agent-engines]==1.153.1" \
+            "google-adk==1.34.3" \
+            "pydantic>=2.0" \
+            "pydantic-settings>=2.8.1" \
+            "google-cloud-storage>=2.0" \
+            "google-auth>=2.36.0" \
+            "google-auth-httplib2>=0.2.0" \
+            "google-auth-oauthlib>=1.2.0" \
+            "google-api-python-client>=2.0" \
+            "PyGithub>=2.0" \
+            "atlassian-python-api>=3.41.0" \
+            "beautifulsoup4>=4.12.0" \
+            "python-dotenv>=1.0.0" \
+            "requests>=2.32.3" \
+            "msal>=1.20.0"
 
       - name: Make script executable
         run: chmod +x deployment/deploy_agent.sh
@@ -55,6 +72,4 @@ jobs:
           GCP_PROJECT: ${{ github.event.inputs.gcp_project }}
           GCP_REGION: ${{ github.event.inputs.gcp_region }}
           GCS_BUCKET: ${{ github.event.inputs.gcs_bucket }}
-          VIRTUAL_ENV: ${{ github.workspace }}/agents/knowledge-iq/enterpriseGPT/.venv
-          PATH: ${{ github.workspace }}/agents/knowledge-iq/enterpriseGPT/.venv/bin:${{ env.PATH }}
         run: ./deployment/deploy_agent.sh
