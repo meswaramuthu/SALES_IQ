@@ -69,6 +69,9 @@ jobs:
             "requests>=2.32.3" \
             "msal>=1.20.0"
 
+      - name: Write .env file
+        run: echo "${{ secrets.AGENT_ENV_FILE }}" > agents/knowledge-iq/enterpriseGPT/.env
+
       - name: Make script executable
         run: chmod +x deployment/deploy_agent.sh
 
