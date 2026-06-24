@@ -1,0 +1,124 @@
+name: Setup Agent Infrastructure (Phases 1-3)
+
+on:
+  workflow_dispatch:
+    inputs:
+      gcp_project:
+        description: "GCP Project ID"
+        required: true
+        default: ""
+      gcp_region:
+        description: "GCP Region for Agent Engine"
+        required: true
+        default: "us-central1"
+      rag_region:
+        description: "GCP Region for RAG Corpus"
+        required: true
+        default: "us-west1"
+      gcs_bucket:
+        description: "GCS Bucket name"
+        required: true
+        default: ""
+      rag_corpus:
+        description: "Existing RAG Corpus resource path (leave blank to create new)"
+        required: false
+        default: ""
+      seed_gcs:
+        description: "GCS path to seed corpus with documents (e.g. gs://bucket/docs/)"
+        required: false
+        default: ""
+
+jobs:
+  setup-infra:
+    name: Setup GCP Infra + RAG Corpus + Config Upload
+    runs-on: ubuntu-latest
+    outputs:
+      rag_corpus: ${{ steps.setup.outputs.rag_corpus }}
+      tools_config_gcs_uri: ${{ steps.setup.outputs.tools_config_gcs_uri }}
+      prompt_gcs_uri: ${{ steps.setup.outputs.prompt_gcs_uri }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.gcp_project }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            "google-cloud-aiplatform[adk,agent-engines]==1.153.1" \
+            "google-adk==1.34.3" \
+            "pydantic>=2.0" \
+            "pydantic-settings>=2.8.1" \
+            "google-cloud-storage>=2.0" \
+            "google-auth>=2.36.0" \
+            "google-auth-httplib2>=0.2.0" \
+            "google-auth-oauthlib>=1.2.0" \
+            "google-api-python-client>=2.0" \
+            "PyGithub>=2.0" \
+            "atlassian-python-api>=3.41.0" \
+            "beautifulsoup4>=4.12.0" \
+            "python-dotenv>=1.0.0" \
+            "requests>=2.32.3" \
+            "msal>=1.20.0"
+
+      - name: Write .env file
+        run: echo "${{ secrets.AGENT_ENV_FILE }}" > agents/knowledge-iq/enterpriseGPT/.env
+
+      - name: Run setup_infra.py (Phases 1-3)
+        id: setup
+        working-directory: agents/knowledge-iq/enterpriseGPT
+        env:
+          GOOGLE_CLOUD_PROJECT: ${{ github.event.inputs.gcp_project }}
+          GOOGLE_CLOUD_LOCATION: ${{ github.event.inputs.gcp_region }}
+        run: |
+          ARGS="--project ${{ github.event.inputs.gcp_project }}"
+          ARGS="$ARGS --location ${{ github.event.inputs.gcp_region }}"
+          ARGS="$ARGS --rag-location ${{ github.event.inputs.rag_region }}"
+          ARGS="$ARGS --bucket ${{ github.event.inputs.gcs_bucket }}"
+
+          if [ -n "${{ github.event.inputs.rag_corpus }}" ]; then
+            ARGS="$ARGS --corpus ${{ github.event.inputs.rag_corpus }}"
+          fi
+
+          if [ -n "${{ github.event.inputs.seed_gcs }}" ]; then
+            ARGS="$ARGS --seed-gcs ${{ github.event.inputs.seed_gcs }}"
+          fi
+
+          python deploy/setup_infra.py $ARGS
+
+      - name: Print values for .env update
+        if: always()
+        run: |
+          echo ""
+          echo "=================================================="
+          echo "  Copy these values into your AGENT_ENV_FILE secret"
+          echo "=================================================="
+          echo ""
+          echo "  RAG_CORPUS=${{ steps.setup.outputs.rag_corpus }}"
+          echo "  TOOLS_CONFIG_GCS_URI=${{ steps.setup.outputs.tools_config_gcs_uri }}"
+          echo "  PROMPT_GCS_URI=${{ steps.setup.outputs.prompt_gcs_uri }}"
+          echo "  STAGING_BUCKET=gs://${{ github.event.inputs.gcs_bucket }}"
+          echo "  GOOGLE_CLOUD_PROJECT=${{ github.event.inputs.gcp_project }}"
+          echo "  GOOGLE_CLOUD_LOCATION=${{ github.event.inputs.gcp_region }}"
+          echo "  RAG_LOCATION=${{ github.event.inputs.rag_region }}"
+          echo ""
+          echo "=================================================="
