@@ -206,23 +206,254 @@ feature-xxx  →  PR  →  develop  →  PR  →  release  →  security scan  �
 
 ---
 
-## Getting Started
+## Local Development — Running Agents with ADK Web
 
-Each agent has its own `pyproject.toml` and `Makefile`. Start with the agent you own:
+This section walks you through running any IQ agent on your local machine using the ADK web UI. Follow every step in order.
+
+### GCP Project for Local Testing
+
+All local development must use the shared development project:
+
+```
+GCP Project ID: development-local-500411
+```
+
+Request access from Abdul or Anshul if you do not have it yet. Do **not** use `ninth-archway-496404-s2` (production) for local runs.
+
+---
+
+### Step 1 — Prerequisites
+
+Install the following tools before starting:
+
+| Tool | Version | Install |
+|------|---------|---------|
+| Python | 3.11 or 3.12 | [python.org](https://www.python.org/downloads/) |
+| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Google Cloud SDK | latest | [cloud.google.com/sdk](https://cloud.google.com/sdk/docs/install) |
+| Docker | latest | Required only if running MCP servers locally |
+
+---
+
+### Step 2 — Authenticate with Google Cloud
 
 ```bash
+# Log in and set application default credentials
+gcloud auth login
+gcloud auth application-default login
+
+# Set the local development project
+gcloud config set project development-local-500411
+
+# Verify
+gcloud config get project
+```
+
+ADK and all Vertex AI calls pick up credentials from Application Default Credentials (ADC). The `gcloud auth application-default login` step is mandatory — the agent will fail to start without it.
+
+---
+
+### Step 3 — Clone the repo and navigate to your agent
+
+```bash
+git clone https://github.com/stratova-ai/laabu-ai-app.git
+cd laabu-ai-app
+
+# Navigate to your agent — example: Knowledge IQ
+cd agents/knowledge-iq/enterpriseGPT
+```
+
+Each IQ agent lives in its own folder under `agents/`. The steps below use `knowledge-iq/enterpriseGPT` as the example — replace the path with your own agent folder.
+
+---
+
+### Step 4 — Copy the example config files
+
+```bash
+# Agent system prompt
+cp config/prompt.example.txt config/prompt.txt
+
+# Tool enablement config
+cp config/tools_config.example.json config/tools_config.json
+```
+
+Edit `config/tools_config.json` to enable only the tools you need locally. Set `"enabled": true` for each tool you want to test and fill in the corresponding credentials. Leave everything else `false` to avoid dependency errors.
+
+---
+
+### Step 5 — Create your `.env` file
+
+Create a `.env` file in the agent folder (it is gitignored — never commit it):
+
+```bash
+touch .env
+```
+
+Add the following variables to `.env`. Only the first three are required to start the agent; the rest depend on which tools you have enabled in `tools_config.json`:
+
+```dotenv
+# ── Required ────────────────────────────────────────────────
+GOOGLE_CLOUD_PROJECT=development-local-500411
+GOOGLE_CLOUD_LOCATION=us-central1
+GCS_BUCKET=stratova-platform
+
+# ── RAG (required if rag tool is enabled) ───────────────────
+KNOWLEDGE_IQ_RAG_CORPUS=projects/development-local-500411/locations/us-central1/ragCorpora/YOUR_CORPUS_ID
+RAG_LOCATION=us-central1
+
+# ── GitHub (required if github tool is enabled) ──────────────
+GITHUB_TOKEN=ghp_yourPersonalAccessToken
+
+# ── Atlassian (required if jira/confluence tools are enabled) ─
+JIRA_API_TOKEN=your_jira_api_token
+CONFLUENCE_API_TOKEN=your_confluence_api_token
+
+# ── Microsoft (required if sharepoint tool is enabled) ────────
+SHAREPOINT_CLIENT_SECRET=your_client_secret
+
+# ── Google Workspace (required if gmail/gdrive tools enabled) ─
+GMAIL_SA_KEY_GCS_URI=gs://stratova-platform/creds/google-sa.json
+GMAIL_USER_EMAIL=you@stratova.ai
+```
+
+Obtain the actual secret values from GCP Secret Manager in the `development-local-500411` project:
+
+```bash
+# Example — fetch a secret value
+gcloud secrets versions access latest \
+  --secret=GITHUB_TOKEN \
+  --project=development-local-500411
+```
+
+---
+
+### Step 6 — Install dependencies
+
+```bash
+# Install all runtime + dev dependencies
+make dev
+
+# Or directly with uv
+uv sync --group dev
+```
+
+This installs the pinned versions from `uv.lock` into a local virtual environment managed by uv.
+
+---
+
+### Step 7 — Run the agent with ADK Web
+
+```bash
+# Using the Makefile shortcut
+make web
+
+# Or directly
+uv run adk web
+```
+
+ADK Web starts a local UI at **http://localhost:8000**. Open it in your browser.
+
+You will see:
+- A chat interface to send prompts to the agent
+- A tool call trace panel showing every tool the agent invokes
+- A session panel to review conversation history
+
+> **Note:** ADK Web loads your `.env` file automatically. If you change `.env`, restart the server.
+
+---
+
+### Step 8 — Select your agent in the UI
+
+When the browser opens at `http://localhost:8000`:
+
+1. Click the **agent selector** dropdown at the top of the chat panel
+2. Select your agent (e.g. `knowledge_iq`)
+3. Type a prompt and press **Enter**
+
+The tool trace panel on the right shows every tool call in real time — useful for debugging which tools are being invoked and what they return.
+
+---
+
+### Step 9 — (Optional) Run MCP servers locally
+
+If your agent calls MCP tool servers (RAG, Web scraper, Calendar, etc.) and you need to test those locally too, run them as Docker containers:
+
+```bash
+# Example — RAG MCP server
+cd tools/mcp_servers/rag
+docker build -t rag-mcp .
+docker run -p 8080:8080 \
+  -e GOOGLE_CLOUD_PROJECT=development-local-500411 \
+  -e KNOWLEDGE_IQ_RAG_CORPUS=your_corpus_resource_name \
+  -e RAG_LOCATION=us-central1 \
+  rag-mcp
+
+# Example — Web scraper MCP server
+cd tools/mcp_servers/web
+docker build -t web-mcp .
+docker run -p 8081:8080 \
+  -e GOOGLE_CLOUD_PROJECT=development-local-500411 \
+  web-mcp
+```
+
+Update `config/tools_config.json` to point the MCP URL to `http://localhost:8080` (or whichever port you mapped) instead of the Cloud Run URL.
+
+---
+
+### Step 10 — Run evaluations
+
+Once the agent responds correctly to manual prompts, run the eval suite:
+
+```bash
+make test
+
+# Or target a specific connector's test cases
+uv run pytest evaluation/ -v -k "rag"
+uv run pytest evaluation/ -v -k "atlassian"
+```
+
+Eval results are written to `evaluation/` and must be committed with any deployment PR.
+
+---
+
+### Common issues
+
+| Problem | Fix |
+|---------|-----|
+| `google.auth.exceptions.DefaultCredentialsError` | Run `gcloud auth application-default login` again |
+| `PermissionDenied` on Vertex AI / GCS | Request access to `development-local-500411` |
+| Agent starts but tools all fail | Check `.env` — missing or wrong secret values |
+| `ModuleNotFoundError` | Run `make dev` to install dependencies |
+| Port 8000 already in use | `uv run adk web --port 8001` |
+| RAG corpus not found | Verify `KNOWLEDGE_IQ_RAG_CORPUS` in `.env` matches a corpus in `development-local-500411` |
+
+---
+
+## Getting Started (Quick Reference)
+
+```bash
+# 1. Authenticate
+gcloud auth application-default login
+gcloud config set project development-local-500411
+
+# 2. Set up config
 cd agents/knowledge-iq/enterpriseGPT
 cp config/prompt.example.txt config/prompt.txt
 cp config/tools_config.example.json config/tools_config.json
-# populate .env from GCP Secret Manager
-make run
+
+# 3. Create .env with GOOGLE_CLOUD_PROJECT=development-local-500411
+
+# 4. Install and run
+make dev
+make web
+# → open http://localhost:8000
 ```
 
-For tool server development:
+For MCP tool server development:
 
 ```bash
 cd tools/mcp_servers/rag
-docker build -t rag-mcp . && docker run -p 8080:8080 rag-mcp
+docker build -t rag-mcp . && docker run -p 8080:8080 -e GOOGLE_CLOUD_PROJECT=development-local-500411 rag-mcp
 ```
 
 ---
