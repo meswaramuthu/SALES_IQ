@@ -206,6 +206,71 @@ feature-xxx  →  PR  →  develop  →  PR  →  release  →  security scan  �
 
 ---
 
+## Setting Up Your Google Account with Stratova.ai Email
+
+Every developer needs a Google account linked to their `@stratova.ai` email address to access GCP Console, gcloud CLI, and shared resources. Follow these steps to create one — **do not create a `@gmail.com` address**; use your existing Stratova email instead.
+
+---
+
+### Step 1 — Open the Google account signup page
+
+Go to [https://accounts.google.com/signup](https://accounts.google.com/signup) in your browser.
+
+---
+
+### Step 2 — Use your existing Stratova email
+
+On the "Create your Google Account" form:
+
+1. Fill in your **First name** and **Last name**
+2. When you reach the **Email address** field, click the link that says **"Use your existing email address instead"** (shown below the input box)
+3. Enter your full Stratova email address — e.g. `yourname@stratova.ai`
+4. Click **Next**
+
+> This option lets you create a Google account backed by your corporate email rather than a new `@gmail.com` address. Your Stratova email becomes the Google account login.
+
+---
+
+### Step 3 — Set a password
+
+Enter a strong password and confirm it, then click **Next**.
+
+---
+
+### Step 4 — Verify your email address
+
+Google will send a verification code to `yourname@stratova.ai`:
+
+1. Open your Stratova email inbox
+2. Find the email from Google with subject **"Verify your email address"**
+3. Copy the 6-digit verification code
+4. Paste it into the Google signup page and click **Verify**
+
+---
+
+### Step 5 — Complete the account setup
+
+Fill in the remaining optional fields (phone number, recovery email, date of birth) and accept Google's Terms of Service. You can skip optional fields.
+
+---
+
+### Step 6 — Verify your account works
+
+1. Go to [https://console.cloud.google.com](https://console.cloud.google.com) and sign in with `yourname@stratova.ai`
+2. Confirm you can see the GCP Console — if you get an access error, ask Abdul or Anshul to grant you access to the `development-local-500411` project
+3. Run the following to confirm gcloud picks up your account:
+
+```bash
+gcloud auth login
+# Select yourname@stratova.ai when the browser opens
+gcloud config set project development-local-500411
+gcloud projects describe development-local-500411
+```
+
+Once this works, you are ready to proceed with the local development setup below.
+
+---
+
 ## Local Development — Running Agents with ADK Web
 
 This section walks you through running any IQ agent on your local machine using the ADK web UI. Follow every step in order.
