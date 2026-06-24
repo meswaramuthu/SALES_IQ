@@ -15,10 +15,10 @@ on:
         description: "GCS Bucket name"
         required: true
         default: ""
-      artifact_registry_repo:
-        description: "Artifact Registry repo URL (e.g. us-central1-docker.pkg.dev/project/repo)"
+      artifact_repo:
+        description: "Artifact Registry repo name only (e.g. knowledge-iq)"
         required: false
-        default: ""
+        default: "knowledge-iq"
       rag_corpus:
         description: "RAG Corpus resource path (from deploy-agent output, e.g. projects/979.../locations/us-west1/ragCorpora/...)"
         required: true
@@ -50,6 +50,9 @@ jobs:
         with:
           project_id: ${{ github.event.inputs.gcp_project }}
 
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ github.event.inputs.gcp_region }}-docker.pkg.dev --quiet
+
       - name: Make script executable
         run: chmod +x deployment/deploy_cloudrun.sh
 
@@ -58,7 +61,7 @@ jobs:
           GCP_PROJECT: ${{ github.event.inputs.gcp_project }}
           GCP_REGION: ${{ github.event.inputs.gcp_region }}
           GCS_BUCKET: ${{ github.event.inputs.gcs_bucket }}
-          ARTIFACT_REGISTRY_REPO: ${{ github.event.inputs.artifact_registry_repo }}
+          ARTIFACT_REPO: ${{ github.event.inputs.artifact_repo }}
           RAG_CORPUS: ${{ github.event.inputs.rag_corpus }}
           SYNC_STATE_GCS_URI: gs://${{ github.event.inputs.gcs_bucket }}/knowledge-iq/sync-state.json
           TOOLS_CONFIG_GCS_URI: gs://${{ github.event.inputs.gcs_bucket }}/knowledge-iq/tools_config.json
