@@ -13,8 +13,7 @@ For high-throughput environments replace BackgroundTasks with a Cloud Tasks or
 Pub/Sub enqueue so the HTTP response returns before the (potentially long) sync.
 
 Startup:
-  python -m sync.webhook_server
-  (or set CMD in Dockerfile.webhook)
+  python -m scheduler.webhook_server
 """
 from __future__ import annotations
 

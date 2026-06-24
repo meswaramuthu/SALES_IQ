@@ -3,8 +3,8 @@
 #
 # Deploys:
 #   1. Docker image → Artifact Registry
-#   2. Cloud Run Job  (sync.job)     — runs on SYNC_SCHEDULE (default: hourly)
-#   3. Cloud Run Service (sync.webhook_server) — receives push events from SharePoint / GitHub
+#   2. Cloud Run Job  (scheduler.job)            — runs on SYNC_SCHEDULE (default: hourly)
+#   3. Cloud Run Service (scheduler.webhook_server) — receives push events from SharePoint / GitHub
 #   4. Cloud Scheduler → triggers the Cloud Run Job on cron
 #
 # Prerequisites:
@@ -13,14 +13,17 @@
 #   SYNC_GITHUB_WEBHOOK_SECRET (if using GitHub webhooks)
 #
 # Usage:
-#   cd agents/knowledge-iq
+#   cd agents/knowledge-iq/enterpriseGPT
 #   export GCP_PROJECT=ninth-archway-496404-s2
 #   export RAG_CORPUS="projects/.../locations/.../ragCorpora/..."
 #   export SYNC_STATE_GCS_URI="gs://my-bucket/knowledge-iq/sync-state.json"
 #   export TOOLS_CONFIG_GCS_URI="gs://my-bucket/knowledge-iq/tools_config.json"
-#   bash sync/deploy.sh
+#   bash deploy/sync_deploy.sh
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENTERPRISE_GPT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"   # agents/knowledge-iq/enterpriseGPT/
 
 # ── Required ─────────────────────────────────────────────────────────────────
 : "${GCP_PROJECT:?Set GCP_PROJECT}"
@@ -43,7 +46,8 @@ SYNC_SHAREPOINT_SITES="${SYNC_SHAREPOINT_SITES:-}"
 SYNC_GITHUB_REPOS="${SYNC_GITHUB_REPOS:-}"
 
 echo "▶ Building image: ${IMAGE}"
-docker build -t "${IMAGE}" -f sync/Dockerfile .
+# Build from enterpriseGPT/ so scheduler/ package is at the Docker build context root
+docker build -t "${IMAGE}" -f "${ENTERPRISE_GPT_DIR}/scheduler/Dockerfile" "${ENTERPRISE_GPT_DIR}"
 
 echo "▶ Pushing image"
 docker push "${IMAGE}"
@@ -79,7 +83,8 @@ else
 fi
 
 # ── Cloud Scheduler ───────────────────────────────────────────────────────────
-SCHEDULER_SA="${SA_EMAIL:-$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)')"-compute@developer.gserviceaccount.com}"
+_PROJ_NUM=$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)')
+SCHEDULER_SA="${SA_EMAIL:-${_PROJ_NUM}-compute@developer.gserviceaccount.com}"
 JOB_URI="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${GCP_PROJECT}/jobs/${JOB_NAME}:run"
 
 echo "▶ Configuring Cloud Scheduler: ${SCHEDULE}"
@@ -107,7 +112,7 @@ gcloud run deploy "${WEBHOOK_SVC}" \
     --image="${IMAGE}" \
     --region="${REGION}" \
     --command="python" \
-    --args="-m,sync.webhook_server" \
+    --args="-m,scheduler.webhook_server" \
     --allow-unauthenticated \
     --set-env-vars="${WEBHOOK_ENV}" \
     --set-secrets="SHAREPOINT_CLIENT_SECRET=SHAREPOINT_CLIENT_SECRET:latest,\

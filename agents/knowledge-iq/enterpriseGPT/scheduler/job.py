@@ -1,7 +1,7 @@
 """Cloud Run Job entry point — scheduled full / delta sync.
 
 Reads TOOLS_CONFIG_GCS_URI (same as the Knowledge IQ agent) for credentials,
-loads sync-specific settings from env vars (see sync/config.py), then runs
+loads sync-specific settings from env vars (see scheduler/config.py), then runs
 every enabled connector in sequence and saves the updated state to GCS.
 
 Exit codes:
@@ -9,7 +9,7 @@ Exit codes:
   1 — at least one connector had errors or configuration is missing
 
 Typical invocation (set by Cloud Run Job CMD):
-  python -m sync.job
+  python -m scheduler.job
 """
 from __future__ import annotations
 

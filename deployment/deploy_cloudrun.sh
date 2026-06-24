@@ -50,7 +50,8 @@ if $DEPLOY_SCHEDULER; then
   echo "--- Deploying scheduler (sync service) ---"
   SYNC_DEPLOY="$REPO_ROOT/agents/knowledge-iq/enterpriseGPT/deploy/sync_deploy.sh"
   if [[ -f "$SYNC_DEPLOY" ]]; then
-    bash "$SYNC_DEPLOY"
+    # sync_deploy.sh uses relative paths anchored to enterpriseGPT/ — must cd there first
+    (cd "$REPO_ROOT/agents/knowledge-iq/enterpriseGPT" && bash "$SYNC_DEPLOY")
   else
     echo "  WARNING: $SYNC_DEPLOY not found, skipping."
   fi
