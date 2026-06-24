@@ -25,16 +25,9 @@ import os
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _SCRIPT_DIR   = Path(__file__).parent.resolve()   # deploy/
 _PROJECT_ROOT = _SCRIPT_DIR.parent.resolve()       # enterpriseGPT/
-
-# Load .env from project root
-_env_file = _PROJECT_ROOT / ".env"
-if _env_file.exists():
-    load_dotenv(_env_file)
 
 # Reuse phase functions from deploy_full
 sys.path.insert(0, str(_SCRIPT_DIR))
@@ -55,7 +48,7 @@ def _build_args() -> argparse.Namespace:
     p.add_argument("--location", default=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"), help="GCP region for Agent Engine")
     p.add_argument("--rag-location", default=os.getenv("RAG_LOCATION", "us-west1"),         help="GCP region for RAG corpus")
     p.add_argument("--bucket",   default=os.getenv("STAGING_BUCKET", "").removeprefix("gs://"),   help="GCS bucket name (without gs://)")
-    p.add_argument("--corpus",   default=os.getenv("RAG_CORPUS", ""),                        help="Existing corpus resource name (blank = create new)")
+    p.add_argument("--corpus",   default="",                                                  help="Existing corpus resource name (blank = create new)")
     p.add_argument("--corpus-name", default="Knowledge IQ Corpus",                           help="Display name for new corpus")
     p.add_argument("--embedding-model", default=os.getenv("RAG_EMBEDDING_MODEL", "publishers/google/models/text-embedding-004"))
     p.add_argument("--seed-gcs",  default="",  help="GCS path to seed the corpus (e.g. gs://bucket/docs/)")
