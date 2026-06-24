@@ -44,6 +44,29 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Create stub for stratova-shared
+        run: |
+          mkdir -p agents/knowledge-iq/shared/src/stratova_shared
+          cat > agents/knowledge-iq/shared/pyproject.toml << 'EOF'
+          [project]
+          name = "stratova-shared"
+          version = "0.1.0"
+          requires-python = ">=3.11"
+
+          [build-system]
+          requires = ["hatchling"]
+          build-backend = "hatchling.build"
+
+          [tool.hatch.build.targets.wheel]
+          packages = ["src/stratova_shared"]
+          EOF
+          touch agents/knowledge-iq/shared/src/stratova_shared/__init__.py
+
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
