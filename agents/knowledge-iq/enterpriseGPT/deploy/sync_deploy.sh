@@ -45,6 +45,29 @@ SA_EMAIL="${SYNC_SA_EMAIL:-}"              # optional: Workload Identity / SA em
 SYNC_SHAREPOINT_SITES="${SYNC_SHAREPOINT_SITES:-}"
 SYNC_GITHUB_REPOS="${SYNC_GITHUB_REPOS:-}"
 
+# ── Ensure required secrets exist in Secret Manager ──────────────────────────
+# Creates a placeholder if the secret is absent so --set-secrets never 404s.
+# Replace placeholder values via:
+#   gcloud secrets versions add SECRET_NAME --data-file=- <<< "real-value"
+_ensure_secret() {
+  local name="$1"
+  local default_val="${2:-placeholder}"
+  if ! gcloud secrets describe "${name}" --project="${GCP_PROJECT}" &>/dev/null; then
+    echo "  [Secret Manager] '${name}' not found — creating with placeholder. Update with real value before use."
+    printf '%s' "${default_val}" | gcloud secrets create "${name}" \
+      --data-file=- \
+      --replication-policy="automatic" \
+      --project="${GCP_PROJECT}"
+  else
+    echo "  [Secret Manager] '${name}' already exists."
+  fi
+}
+
+echo "▶ Ensuring secrets exist in project ${GCP_PROJECT}..."
+_ensure_secret "SHAREPOINT_CLIENT_SECRET"
+_ensure_secret "GITHUB_TOKEN"
+_ensure_secret "SYNC_GITHUB_WEBHOOK_SECRET"
+
 echo "▶ Building image: ${IMAGE}"
 # Build from enterpriseGPT/ so scheduler/ package is at the Docker build context root
 docker build -t "${IMAGE}" -f "${ENTERPRISE_GPT_DIR}/scheduler/Dockerfile" "${ENTERPRISE_GPT_DIR}"
