@@ -1,7 +1,7 @@
 {
   "eval_set_id": "enterpriseGPT_atlassian_eval_set",
   "name": "Atlassian Tool Evaluation (Jira + Confluence)",
-  "description": "Jira and Confluence are currently DISABLED in tools_config.json. These cases document expected behaviour once the connectors are enabled. Set jira.enabled=true and confluence.enabled=true in config/tools_config.json to activate.",
+  "description": "Jira and Confluence are ENABLED in tools_config.json. Credentials use env:JIRA_API_TOKEN and env:CONFLUENCE_API_TOKEN. Jira workspace: stratova.atlassian.net (projects: LAAB, SBP, SPP, STRAT). Confluence: stratova.atlassian.net/wiki.",
   "eval_cases": [
     {
       "eval_id": "jira_search_open_bugs",

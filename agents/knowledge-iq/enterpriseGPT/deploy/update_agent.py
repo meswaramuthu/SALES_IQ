@@ -9,8 +9,8 @@ This script does ONLY two things, in order:
 Use this instead of deploy_full.py when you only changed Python code / config
 and don't need to recreate infrastructure, the RAG corpus, or Gemini Enterprise app.
 
-Usage (from agents/knowledge-iq/):
-    uv run python deployment/update_agent.py
+Usage (from agents/knowledge-iq/enterpriseGPT/):
+    uv run --env-file .env python deploy/update_agent.py
 
 Requirements:
     - AGENT_ENGINE_ID in .env (set automatically by deploy_full.py)
@@ -34,15 +34,16 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-_SCRIPT_DIR   = Path(__file__).parent.resolve()   # deployment/
-_PROJECT_ROOT = _SCRIPT_DIR.parent.resolve()       # knowledge-iq/
+_SCRIPT_DIR   = Path(__file__).parent.resolve()      # deploy/
+_PROJECT_ROOT = _SCRIPT_DIR.parent.resolve()         # enterpriseGPT/
+_REPO_ROOT    = _PROJECT_ROOT.parent.parent.parent   # laabu-ai-app/
 _STATE_FILE   = _SCRIPT_DIR / "deployment_state.json"
 _CONFIG_FILE  = _PROJECT_ROOT / "config" / "tools_config.json"
 _ENV_FILE     = _PROJECT_ROOT / ".env"
 
 _REQUIREMENTS = [
-    "google-cloud-aiplatform[adk,agent-engines]>=1.108.0",
-    "google-adk>=1.31.0",
+    "google-cloud-aiplatform[adk,agent-engines]==1.153.1",  # pin: matches pyproject.toml
+    "google-adk==1.34.3",
     "python-dotenv",
     "google-cloud-storage>=2.0",
     "google-auth>=2.36.0",
@@ -92,21 +93,22 @@ def _update_agent(
     log.info("━━  Step 2 › Update existing Agent Engine  ━━")
     log.info("Resource: %s", resource_name)
 
+    import subprocess
+
     import vertexai
     from vertexai import agent_engines
     from vertexai.preview.reasoning_engines import AdkApp
 
     # Install deps first
-    import subprocess
     log.info("Syncing dependencies …")
     subprocess.run(["uv", "sync"], check=True, cwd=str(_PROJECT_ROOT))
 
-    os.chdir(_PROJECT_ROOT)
-    sys.path.insert(0, str(_PROJECT_ROOT))
+    sys.path.insert(0, str(_REPO_ROOT))    # for tools/ package at repo root
+    sys.path.insert(0, str(_PROJECT_ROOT)) # for agent.py, config.py, prompts.py
 
     vertexai.init(project=project, location=location, staging_bucket=staging_bucket)
 
-    from knowledge_iq.agent import root_agent  # noqa: PLC0415
+    from agent import root_agent  # noqa: PLC0415  (agent.py is at _PROJECT_ROOT)
 
     wrapped = AdkApp(agent=root_agent, enable_tracing=True)
 
@@ -132,17 +134,46 @@ def _update_agent(
 
     log.info("Env vars being set on remote agent: %s", sorted(agent_env_vars.keys()))
 
-    # Update in place — same resource name, Gemini Enterprise registration untouched.
-    log.info("Updating Agent Engine (this takes 3–6 min) …")
-    remote_app = agent_engines.get(resource_name=resource_name)
-    remote_app.update(
-        agent_engine=wrapped,
-        requirements=_REQUIREMENTS,
-        # knowledge_iq: the agent package
-        # ../shared: stratova_shared library (user_file_registry + rag_tool etc.)
-        extra_packages=["./knowledge_iq", "../shared"],
-        env_vars=agent_env_vars,
-    )
+    # Register flat local modules by value (belt-and-suspenders).
+    import importlib as _importlib
+    import cloudpickle as _cloudpickle
+    for _local_mod_name in ["prompts", "config", "agent"]:
+        try:
+            _mod = _importlib.import_module(_local_mod_name)
+            _cloudpickle.register_pickle_by_value(_mod)
+            log.info("Registered '%s' for by-value pickling.", _local_mod_name)
+        except Exception as _e:
+            log.warning("Could not register '%s' by value: %s", _local_mod_name, _e)
+
+    # Bundle flat files + tools/ together so remote can import both.
+    # All tool modules do `from config import get_config` at module level; config.py
+    # must be at the archive root alongside tools/.
+    import shutil
+    import tempfile as _tempfile
+
+    with _tempfile.TemporaryDirectory(prefix="laabu_bundle_") as _tmp_bundle:
+        _bundle = Path(_tmp_bundle)
+        for _fname in ["agent.py", "config.py", "prompts.py"]:
+            _src = _PROJECT_ROOT / _fname
+            if _src.exists():
+                shutil.copy2(_src, _bundle / _fname)
+                log.info("Bundled flat file: %s", _fname)
+        shutil.copytree(str(_REPO_ROOT / "tools"), str(_bundle / "tools"))
+        log.info("Bundled: tools/")
+
+        os.chdir(_bundle)
+        log.info("extra_packages: [.]  (bundle → %s)", _bundle)
+
+        # Update in place — same resource name, Gemini Enterprise registration untouched.
+        log.info("Updating Agent Engine (this takes 3–6 min) …")
+        remote_app = agent_engines.get(resource_name=resource_name)
+        remote_app.update(
+            agent_engine=wrapped,
+            requirements=_REQUIREMENTS,
+            extra_packages=["."],   # bundle root: config.py + agent.py + prompts.py + tools/
+            env_vars=agent_env_vars,
+        )
+    # Temp dir cleaned up here
     log.info("Agent Engine updated successfully: %s", resource_name)
 
     # Quick smoke test
@@ -172,14 +203,14 @@ def main() -> None:
 
     tools_config_uri = os.environ.get(
         "TOOLS_CONFIG_GCS_URI",
-        "gs://ninth-archway-496404-s2-knowledge-iq/knowledge-iq/tools_config.json",
+        "gs://stratova-platform/knowledge-iq/tools_config.json",
     )
     prompt_uri = os.environ.get("PROMPT_GCS_URI", "")
 
     project = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
     location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
     staging_bucket = os.environ.get(
-        "STAGING_BUCKET", "gs://ninth-archway-496404-s2-knowledge-iq"
+        "STAGING_BUCKET", "gs://stratova-platform"
     )
 
     if not resource_name:

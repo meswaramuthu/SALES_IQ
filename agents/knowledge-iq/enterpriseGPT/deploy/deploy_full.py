@@ -44,26 +44,26 @@ Removes (in order):
 EXAMPLES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Full deploy from agents/knowledge-iq/
-  uv run python deployment/deploy_full.py --project ninth-archway-496404-s2
+  uv run python deploy/deploy_full.py --project ninth-archway-496404-s2
 
 # Skip Gemini Enterprise integration
-  uv run python deployment/deploy_full.py --project ninth-archway-496404-s2 \\
+  uv run python deploy/deploy_full.py --project ninth-archway-496404-s2 \\
       --skip-gemini-enterprise
 
 # Deploy, reuse an existing RAG corpus
-  uv run python deployment/deploy_full.py --project ninth-archway-496404-s2 \\
+  uv run python deploy/deploy_full.py --project ninth-archway-496404-s2 \\
       --corpus projects/528271267622/locations/us-central1/ragCorpora/123456789
 
 # Deploy with initial document seed from GCS
-  uv run python deployment/deploy_full.py --project ninth-archway-496404-s2 \\
+  uv run python deploy/deploy_full.py --project ninth-archway-496404-s2 \\
       --seed-gcs gs://my-bucket/docs/
 
 # Full teardown — Agent Engine + corpus + GCS config
-  uv run python deployment/deploy_full.py --delete --project ninth-archway-496404-s2 \\
+  uv run python deploy/deploy_full.py --delete --project ninth-archway-496404-s2 \\
       --delete-corpus --delete-gcs-config
 
 # Teardown specifying explicit resource IDs (skips reading state file)
-  uv run python deployment/deploy_full.py --delete --project ninth-archway-496404-s2 \\
+  uv run python deploy/deploy_full.py --delete --project ninth-archway-496404-s2 \\
       --resource-id projects/528271267622/locations/us-central1/reasoningEngines/999 \\
       --corpus projects/528271267622/locations/us-central1/ragCorpora/123 \\
       --delete-corpus --delete-gcs-config
@@ -75,7 +75,6 @@ import argparse
 import json
 import logging
 import os
-import shutil
 import subprocess
 import sys
 import time
@@ -101,8 +100,9 @@ log = logging.getLogger(__name__)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-_SCRIPT_DIR   = Path(__file__).parent.resolve()      # deployment/
-_PROJECT_ROOT = _SCRIPT_DIR.parent.resolve()         # knowledge-iq/
+_SCRIPT_DIR   = Path(__file__).parent.resolve()      # deploy/
+_PROJECT_ROOT = _SCRIPT_DIR.parent.resolve()         # enterpriseGPT/
+_REPO_ROOT    = _PROJECT_ROOT.parent.parent.parent   # laabu-ai-app/
 _ENV_FILE     = _PROJECT_ROOT / ".env"
 _STATE_FILE   = _SCRIPT_DIR / "deployment_state.json"
 _CONFIG_FILE  = _PROJECT_ROOT / "config" / "tools_config.json"
@@ -137,6 +137,33 @@ def _load_state() -> dict:
 def _save_state(state: dict) -> None:
     _STATE_FILE.write_text(json.dumps(state, indent=2))
     log.info("State saved → %s", _STATE_FILE)
+
+
+# ── Secret Manager helper ─────────────────────────────────────────────────────
+
+def _save_to_secret_manager(project: str, secret_id: str, value: str) -> None:
+    """Idempotently create-or-update a GCP Secret Manager secret. Best-effort."""
+    try:
+        from google.cloud import secretmanager  # noqa: PLC0415
+        client = secretmanager.SecretManagerServiceClient()
+        parent = f"projects/{project}"
+        secret_path = f"{parent}/secrets/{secret_id}"
+        try:
+            client.get_secret(request={"name": secret_path})
+        except Exception:
+            client.create_secret(
+                request={
+                    "parent": parent,
+                    "secret_id": secret_id,
+                    "secret": {"replication": {"automatic": {}}},
+                }
+            )
+        client.add_secret_version(
+            request={"parent": secret_path, "payload": {"data": value.encode()}}
+        )
+        log.info("[Secret Manager] Saved '%s'.", secret_id)
+    except Exception as exc:
+        log.warning("[Secret Manager] Could not save '%s' (non-fatal): %s", secret_id, exc)
 
 
 # ── Shell helper ──────────────────────────────────────────────────────────────
@@ -452,13 +479,15 @@ def phase4_deploy_agent(
     log.info("Installing dependencies …")
     _sh(["uv", "sync"], cwd=_PROJECT_ROOT)
 
-    # Run from project root so ./knowledge_iq path resolves correctly
+    # Run from enterpriseGPT/ so relative imports (agent.py, config.py, etc.) resolve correctly.
+    # Also add repo root to path so `from tools.registry import ...` works.
     os.chdir(_PROJECT_ROOT)
-    sys.path.insert(0, str(_PROJECT_ROOT))
+    sys.path.insert(0, str(_REPO_ROOT))    # for tools/ package at repo root
+    sys.path.insert(0, str(_PROJECT_ROOT)) # for agent.py, config.py, prompts.py
 
     vertexai.init(project=project, location=location, staging_bucket=bucket_uri)
 
-    from knowledge_iq.agent import root_agent  # noqa: PLC0415
+    from agent import root_agent  # noqa: PLC0415  (agent.py is at _PROJECT_ROOT)
 
     wrapped = AdkApp(agent=root_agent, enable_tracing=True)
 
@@ -487,27 +516,79 @@ def phase4_deploy_agent(
 
     log.info("Passing env vars to remote agent: %s", list(agent_env_vars.keys()))
 
-    # Copy stratova_shared into the project root so it can be bundled as a plain
-    # Python package directory alongside knowledge_iq (same approach as deploy.py).
-    _shared_src = _PROJECT_ROOT.parent / "shared" / "stratova_shared"
-    _shared_local = _PROJECT_ROOT / "stratova_shared"
-    shutil.copytree(_shared_src, _shared_local, dirs_exist_ok=True)
-    log.info("Copied stratova_shared → %s for bundling", _shared_local)
+    # ── Register flat local modules by value (belt-and-suspenders) ───────────
+    import importlib as _importlib
+    import cloudpickle as _cloudpickle
+    for _local_mod_name in ["prompts", "config", "agent"]:
+        try:
+            _mod = _importlib.import_module(_local_mod_name)
+            _cloudpickle.register_pickle_by_value(_mod)
+            log.info("Registered '%s' for by-value pickling.", _local_mod_name)
+        except Exception as _e:
+            log.warning("Could not register '%s' by value: %s", _local_mod_name, _e)
 
-    log.info("Deploying to Vertex AI Agent Engine (this takes 3–6 min) …")
-    try:
-        remote_app = agent_engines.create(
-            wrapped,
+    # ── Bundle flat files + tools/ in a temp dir so remote can import both ───
+    # All 13 tool modules do `from config import get_config` at their module top
+    # level. They are pickled by reference (tools/ is in extra_packages), so when
+    # the remote container imports e.g. tools.github.github_tool it immediately
+    # runs `from config import get_config` — and needs config.py on sys.path.
+    # Fix: bundle config.py alongside tools/ at the archive root by putting both
+    # into a single temp dir and passing "." so `tar.add(".")` archives everything
+    # at the root. Temp dir lives in /tmp — nothing written to the project tree.
+    import shutil
+    import tempfile as _tempfile
+
+    with _tempfile.TemporaryDirectory(prefix="laabu_bundle_") as _tmp_bundle:
+        _bundle = Path(_tmp_bundle)
+        for _fname in ["agent.py", "config.py", "prompts.py"]:
+            _src = _PROJECT_ROOT / _fname
+            if _src.exists():
+                shutil.copy2(_src, _bundle / _fname)
+                log.info("Bundled flat file: %s", _fname)
+        shutil.copytree(str(_REPO_ROOT / "tools"), str(_bundle / "tools"))
+        log.info("Bundled: tools/")
+
+        # cwd = bundle dir so SDK's tar.add(".") puts everything at archive root
+        os.chdir(_bundle)
+        log.info("extra_packages: [.]  (bundle → %s)", _bundle)
+
+        _display_name = "KnowledgeIQ — Data Gateway (Laabu)"
+        _deploy_kwargs = dict(
             requirements=_REQUIREMENTS,
-            extra_packages=["./knowledge_iq", "./stratova_shared"],
+            extra_packages=["."],   # bundle root: config.py + agent.py + prompts.py + tools/
             env_vars=agent_env_vars,
         )
-    finally:
-        if _shared_local.exists():
-            shutil.rmtree(_shared_local)
-            log.info("Cleaned up temporary stratova_shared bundle")
+
+        # Priority: AGENT_ENGINE_ID env var → deployment_state.json agent_engine field.
+        _existing_id = os.environ.get("AGENT_ENGINE_ID", "")
+        if not _existing_id and _STATE_FILE.exists():
+            _existing_id = _load_state().get("agent_engine", "")
+
+        log.info("Deploying to Vertex AI Agent Engine (this takes 3–6 min) …")
+        if _existing_id:
+            log.info("Existing agent found (%s) — updating in place …", _existing_id)
+            try:
+                _existing_app = agent_engines.get(_existing_id)
+                remote_app = _existing_app.update(agent_engine=wrapped, **_deploy_kwargs)
+                log.info("Agent Engine updated: %s", remote_app.resource_name)
+            except Exception as _upd_err:
+                log.warning("Update failed (%s) — falling back to create …", _upd_err)
+                remote_app = agent_engines.create(
+                    wrapped,
+                    display_name=_display_name,
+                    **_deploy_kwargs,
+                )
+                log.info("Agent Engine created: %s", remote_app.resource_name)
+        else:
+            log.info("No existing agent found — creating new …")
+            remote_app = agent_engines.create(
+                wrapped,
+                display_name=_display_name,
+                **_deploy_kwargs,
+            )
+            log.info("Agent Engine created: %s", remote_app.resource_name)
+    # Temp dir cleaned up here; remote_app is still in scope
     resource_name: str = remote_app.resource_name
-    log.info("Agent Engine created: %s", resource_name)
 
     # Persist to .env
     try:
@@ -519,6 +600,9 @@ def phase4_deploy_agent(
         log.info("Updated .env with new resource IDs.")
     except Exception as exc:
         log.warning("Could not update .env: %s", exc)
+
+    # Persist to Secret Manager (laabu-agents-knowledge-iq-engine-id)
+    _save_to_secret_manager(project, "laabu-agents-knowledge-iq-engine-id", resource_name)
 
     # Smoke test
     log.info("Running smoke test …")
@@ -918,7 +1002,8 @@ def main() -> None:
 
     # ── DEPLOY MODE ───────────────────────────────────────────────────────────
 
-    bucket_name = args.bucket or f"{args.project}-knowledge-iq"
+    # Strip gs:// prefix if the user passed a full URI (e.g. --bucket gs://my-bucket)
+    bucket_name = (args.bucket or f"{args.project}-knowledge-iq").removeprefix("gs://")
     state: dict = {
         "project": args.project,
         "location": args.location,

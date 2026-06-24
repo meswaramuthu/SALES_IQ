@@ -55,17 +55,21 @@ def get_tools() -> list[Callable]:
             cql = f'text ~ "{query}" AND type = page'
             if space_key:
                 cql += f' AND space = "{space_key}"'
+            base_url = cfg.config.get("url", "").rstrip("/")
             results = conf.cql(cql, limit=max_results)
-            pages = [
-                {
-                    "id": r["content"]["id"],
-                    "title": r["content"]["title"],
-                    "space": r.get("resultGlobalContainer", {}).get("title", ""),
-                    "url": r.get("url", ""),
-                    "excerpt": r.get("excerpt", ""),
-                }
-                for r in results.get("results", [])
-            ]
+            pages = []
+            for r in results.get("results", []):
+                relative = r.get("url", "")
+                full_url = (base_url + relative) if relative.startswith("/") else relative
+                pages.append(
+                    {
+                        "id": r["content"]["id"],
+                        "title": r["content"]["title"],
+                        "space": r.get("resultGlobalContainer", {}).get("title", ""),
+                        "url": full_url,
+                        "excerpt": r.get("excerpt", ""),
+                    }
+                )
             return {"pages": pages, "count": len(pages)}
         except Exception as exc:
             logger.error("Confluence search error: %s", exc)

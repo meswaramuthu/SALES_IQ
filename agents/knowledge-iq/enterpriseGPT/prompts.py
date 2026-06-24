@@ -24,10 +24,14 @@ _TOOL_LABELS: dict[str, str] = {
     "rag": "Personal Knowledge Base",
     "gemini_connectors": "Gemini Enterprise Connectors (Google Drive + all UI-connected sources)",
     "gmail": "Gmail",
+    "gdrive": "Google Drive",
     "github": "GitHub",
     "jira": "Jira",
     "confluence": "Confluence",
     "sharepoint": "SharePoint",
+    "onedrive": "OneDrive",
+    "outlook": "Outlook Mail",
+    "notion": "Notion",
 }
 
 # The {tool_status} and {current_datetime} placeholders are filled in at runtime.
@@ -48,10 +52,11 @@ already provided above.
 ## Currently connected data sources
 {tool_status}
 
-## Guidelines
+## Guidelines — MUST FOLLOW
+- NEVER ask the user which source to search. NEVER say "Would you like me to search X?". Search autonomously.
+- Call search_knowledge_base FIRST. If it returns 0 results, IMMEDIATELY search all other enabled tools (SharePoint, OneDrive, Confluence, Jira, GitHub, Outlook, Gmail, Notion) without asking or pausing.
 - Only use tools listed as ENABLED above.
-- Search the most relevant source(s) for the question; use multiple when needed.
-- If you cannot find an answer, clearly state which sources you checked.
+- Only say "I couldn't find information" after you have searched ALL relevant enabled tools.
 - Never fabricate information; acknowledge uncertainty explicitly.
 - Never call a tool to get the current date/time — it is always in this prompt.
 
@@ -87,23 +92,44 @@ Behaviour rules:
 - When admin_access_control_enabled is false (default), all users have access to all
   documents in the knowledge base — no per-user filtering is applied.
 
+## Connected agents
+The following specialist agents are available. Delegate tasks to them instead of attempting to handle them yourself.
+
+{available_sub_agents}
+
+Delegation rules:
+- Always delegate CRM reads and writes to the CRM agent — do not attempt to query HubSpot directly.
+- Always delegate company enrichment to the enrichment agent.
+- Always delegate URL scraping to the web scraper agent.
+- Pass the full user request as-is to the sub-agent. Do not summarise or paraphrase.
+- The sub-agent returns a complete response. Incorporate it directly into your answer.
+
 ## Citation format
-End every answer that draws on external data with a "Sources:" section:
-  - [RAG] Document title or section
-  - [Gmail] Subject: "email subject" (from: sender@example.com)
-  - [Drive] filename.ext
-  - [GitHub] org/repo#issue_number  or  org/repo/path/to/file
-  - [Jira] PROJECT-123: Ticket title
-  - [Confluence] Space / Page title
-  - [SharePoint] Site name / Library / Filename  or  Site name / List name
+End every answer that draws on external data with a "Sources:" section.
+Always use the **actual document/file/page title** — never the tool function name.
+When the source has a URL, make the title a clickable markdown link: [Title](url)
+
+  - [RAG] [Document title](web_link) — if the result has a web_link, make it a clickable link; otherwise just use the display_name field as plain text
+  - [Gmail] [Subject: "email subject"](web_link) — from: sender@example.com, date
+  - [Drive] [filename.ext](url)
+  - [GitHub] [org/repo#123: Issue title](url)  or  [org/repo/path/to/file](url)
+  - [Jira] [PROJECT-123: Ticket title](url)
+  - [Confluence] [Space / Page title](url)
+  - [SharePoint] [Site / Library / Filename](web_url)
+  - [OneDrive] [filename.ext](web_url)
+  - [Outlook] [Subject: "email subject"](web_link) — from: sender@example.com, date
+  - [Notion] [Page title](url)  or  Database name / Record title
+  - [CRM Agent] HubSpot deal / contact record
+  - [Enrichment Agent] Company profile source
+  - [Web Scraper Agent] URL scraped
 """
 
 
 def _tool_status_block(cfg: AgentConfig) -> str:
     lines = []
-    for name, label in _TOOL_LABELS.items():
-        tool_cfg = cfg.tools.get(name)
-        if tool_cfg and tool_cfg.enabled:
+    for name, tool_cfg in cfg.tools.items():
+        label = _TOOL_LABELS.get(name, name.replace("_", " ").title())
+        if tool_cfg.enabled:
             lines.append(f"- {label}: ENABLED")
         else:
             lines.append(f"- {label}: DISABLED (do not use)")

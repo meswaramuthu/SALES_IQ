@@ -96,10 +96,12 @@ def _is_access_control_enabled(cfg_config: dict) -> bool:
 def _is_admin(user_id: str, cfg_config: dict) -> bool:
     """Return True if user_id is in the configured admin_users list.
 
-    Admin list is read from the TTL-cached tools_config.json (GCS-backed),
-    so changes take effect within CONFIG_CACHE_TTL_SECONDS without any redeploy.
-    Only meaningful when _is_access_control_enabled() is True.
+    Non-email user_ids (e.g. the local ADK dev UI default "user") are treated
+    as admin so local testing always gets full corpus access.
     """
+    if "@" not in user_id:
+        # Local ADK dev session — not a real authenticated workspace user.
+        return True
     return user_id in cfg_config.get("admin_users", [])
 
 
@@ -155,23 +157,22 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
 
             _init_for_corpus(corpus)
 
-            if not _is_access_control_enabled(cfg.config) or _is_admin(user_id, cfg.config):
+            access_ctrl = _is_access_control_enabled(cfg.config)
+            is_admin = access_ctrl and _is_admin(user_id, cfg.config)
+
+            if not access_ctrl or is_admin:
                 # Access control disabled (open mode) OR admin user: search full corpus.
-                logger.info("search_knowledge_base: full corpus search for user=%s (access_control=%s)", user_id, _is_access_control_enabled(cfg.config))
+                logger.info("search_knowledge_base: full corpus search for user=%s (access_control=%s)", user_id, access_ctrl)
                 rag_resource = rag.RagResource(rag_corpus=corpus)
             else:
                 from stratova_shared.user_file_registry import get_user_files
 
                 file_names = get_user_files(user_id, registry_uri)
                 if not file_names:
-                    return {
-                        "results": [],
-                        "count": 0,
-                        "message": (
-                            "Your personal knowledge base is empty. "
-                            "Upload a document first using the 📎 attachment icon or by sharing a Google Drive URL."
-                        ),
-                    }
+                    # User has no personal uploads yet — return empty results without
+                    # a blocking message so the LLM continues to search other tools.
+                    logger.info("search_knowledge_base: no personal files for user=%s — returning empty", user_id)
+                    return {"results": [], "count": 0}
                 rag_resource = rag.RagResource(
                     rag_corpus=corpus,
                     rag_file_ids=[n.split("/")[-1] for n in file_names],
@@ -183,14 +184,25 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
                 similarity_top_k=cfg.config.get("similarity_top_k", 10),
                 vector_distance_threshold=cfg.config.get("vector_distance_threshold", 0.6),
             )
-            results = [
-                {
-                    "source": ctx.source_uri,
-                    "text": ctx.text,
-                    "score": round(ctx.score, 4),
-                }
-                for ctx in response.contexts.contexts
-            ]
+            results = []
+            for ctx in response.contexts.contexts:
+                source_uri = ctx.source_uri or ""
+                display_name = ctx.source_display_name or source_uri
+                # source_uri is a real URL only for Drive/GCS imports; for
+                # directly-uploaded files it equals the display name (not a URL).
+                if source_uri.startswith("https://"):
+                    web_link = source_uri
+                else:
+                    web_link = ""
+                results.append(
+                    {
+                        "source": source_uri,
+                        "display_name": display_name,
+                        "web_link": web_link,
+                        "text": ctx.text,
+                        "score": round(ctx.score, 4),
+                    }
+                )
             return {"results": results, "count": len(results)}
         except Exception as exc:
             logger.error("search_knowledge_base error for user=%s: %s", user_id, exc)

@@ -1,7 +1,7 @@
 {
   "prompt": {
     "source": "gcs",
-    "gcs_uri": "gs://ninth-archway-496404-s2-knowledge-iq/knowledge-iq/prompt.txt"
+    "gcs_uri": "gs://stratova-platform/knowledge-iq/prompt.txt"
   },
   "tools": {
     "rag": {
@@ -13,7 +13,7 @@
         "chunk_overlap": 100,
         "similarity_top_k": 10,
         "vector_distance_threshold": 0.6,
-        "user_file_registry_uri": "gs://ninth-archway-496404-s2-knowledge-iq/knowledge-iq/user_file_registry.json",
+        "user_file_registry_uri": "gs://stratova-platform/knowledge-iq/user_file_registry.json",
         "admin_access_control_enabled": true,
         "admin_users": [
           "abdul@stratova.ai",
@@ -25,7 +25,7 @@
       }
     },
     "gemini_connectors": {
-      "enabled": true,
+      "enabled": false,
       "config": {
         "project_id": "ninth-archway-496404-s2",
         "project_number": "528271267622",
@@ -35,8 +35,19 @@
       }
     },
     "gmail": {
-      "enabled": false,
-      "config": {}
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "abdul@stratova.ai",
+        "max_results": 20
+      }
+    },
+    "gdrive": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "abdul@stratova.ai"
+      }
     },
     "github": {
       "enabled": true,
@@ -47,12 +58,20 @@
       }
     },
     "jira": {
-      "enabled": false,
-      "config": {}
+      "enabled": true,
+      "config": {
+        "url": "https://stratova.atlassian.net",
+        "username": "riya@stratova.ai",
+        "api_token": "env:JIRA_API_TOKEN"
+      }
     },
     "confluence": {
-      "enabled": false,
-      "config": {}
+      "enabled": true,
+      "config": {
+        "url": "https://stratova.atlassian.net/wiki",
+        "username": "riya@stratova.ai",
+        "api_token": "env:CONFLUENCE_API_TOKEN"
+      }
     },
     "sharepoint": {
       "enabled": true,
@@ -62,6 +81,30 @@
         "client_secret": "env:SHAREPOINT_CLIENT_SECRET",
         "site_url": "https://netorgft19462082.sharepoint.com/sites/Stratova",
         "search_region": "APC"
+      }
+    },
+    "onedrive": {
+      "enabled": true,
+      "config": {
+        "tenant_id": "1351575c-6ce0-40bf-832c-9d4098493fe9",
+        "client_id": "5a836003-6059-48d6-9a1c-831d0dc64647",
+        "client_secret": "env:ONEDRIVE_CLIENT_SECRET",
+        "user_email": "riya@stratova.ai"
+      }
+    },
+    "outlook": {
+      "enabled": true,
+      "config": {
+        "tenant_id": "1351575c-6ce0-40bf-832c-9d4098493fe9",
+        "client_id": "5a836003-6059-48d6-9a1c-831d0dc64647",
+        "client_secret": "env:OUTLOOK_CLIENT_SECRET",
+        "user_email": "riya@stratova.ai"
+      }
+    },
+    "notion": {
+      "enabled": true,
+      "config": {
+        "api_token": "env:NOTION_API_TOKEN"
       }
     }
   },

@@ -1,7 +1,7 @@
 {
   "name": "Knowledge IQ",
   "version": "1.0.0",
-  "description": "Enterprise knowledge query agent providing unified search and retrieval across Gmail, Google Drive, Jira, Confluence, GitHub, SharePoint, and CRM data sources. Supports per-user RAG document uploads and semantic search.",
+  "description": "Enterprise knowledge query agent providing unified search and retrieval across Jira, Confluence, GitHub, SharePoint, OneDrive, Outlook, Notion, and CRM data sources. Supports per-user RAG document uploads and semantic search.",
   "gcs_card_path": "gs://stratova-platform/agents/knowledge-iq/agent-card/agent-card.json",
   "capabilities": {
     "streaming": true
@@ -125,6 +125,54 @@
         "Enrich company for maya@vantageclinical.com",
         "Get firmographic data for acme.com",
         "What is the headcount and industry for clearbit.com?"
+      ]
+    },
+    {
+      "id": "web_scraper",
+      "name": "Web Scraper",
+      "description": "Scrape and extract structured content from any public URL using the Web Scraper Agent.",
+      "input": "URL and optional extraction instructions",
+      "output": "Extracted page content, structured data, or summarised text",
+      "examples": [
+        "Scrape the pricing page at acme.com/pricing and summarise the tiers",
+        "Extract the team members listed on vantageclinical.com/about",
+        "What does the careers page at competitor.com say about their tech stack?"
+      ]
+    },
+    {
+      "id": "onedrive_search",
+      "name": "OneDrive Search",
+      "description": "Search and retrieve files stored in Microsoft OneDrive for the connected account.",
+      "input": "File name or keyword query",
+      "output": "Matching files with name, type, and downloadable text content",
+      "examples": [
+        "Find the Q4 budget spreadsheet in OneDrive",
+        "List all files in my OneDrive root folder",
+        "Get the content of the project proposal document"
+      ]
+    },
+    {
+      "id": "outlook_search",
+      "name": "Outlook Mail Search",
+      "description": "Search and retrieve emails from the connected Microsoft Outlook account using keyword query language.",
+      "input": "Natural language email query (sender, subject, date, keywords)",
+      "output": "Matching emails with subject, sender, date, and full body text",
+      "examples": [
+        "Find emails from riya@stratova.ai about contract renewals",
+        "Show unread emails in my inbox from this week",
+        "Search for emails with attachments about the product launch"
+      ]
+    },
+    {
+      "id": "notion_search",
+      "name": "Notion Search",
+      "description": "Search pages and query databases in the connected Notion workspace.",
+      "input": "Natural language query or database filter",
+      "output": "Matching pages with full text content, or database records with field values",
+      "examples": [
+        "Search Notion for our product roadmap",
+        "List all databases in our Notion workspace",
+        "Query the CRM database filtered by Status = Active"
       ]
     }
   ]

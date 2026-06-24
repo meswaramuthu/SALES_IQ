@@ -123,7 +123,7 @@ def _build_from_env() -> AgentConfig:
                 "vector_distance_threshold": float(os.environ.get("RAG_DISTANCE_THRESHOLD", "0.6")),
                 "user_file_registry_uri": os.environ.get(
                     "USER_FILE_REGISTRY_URI",
-                    "gs://ninth-archway-496404-s2-knowledge-iq/knowledge-iq/user_file_registry.json",
+                    "gs://stratova-platform/knowledge-iq/user_file_registry.json",
                 ),
                 "admin_access_control_enabled": os.environ.get(
                     "RAG_ADMIN_ACCESS_CONTROL_ENABLED", "false"
@@ -181,6 +181,30 @@ def _build_from_env() -> AgentConfig:
                 "client_secret": os.environ.get("SHAREPOINT_CLIENT_SECRET", ""),
                 "site_url": os.environ.get("SHAREPOINT_SITE_URL", ""),
                 "search_region": os.environ.get("SHAREPOINT_SEARCH_REGION", "APC"),
+            },
+        ),
+        "onedrive": ToolConfig(
+            enabled=os.environ.get("ONEDRIVE_ENABLED", "false").lower() == "true",
+            config={
+                "tenant_id": os.environ.get("ONEDRIVE_TENANT_ID", ""),
+                "client_id": os.environ.get("ONEDRIVE_CLIENT_ID", ""),
+                "client_secret": os.environ.get("ONEDRIVE_CLIENT_SECRET", ""),
+                "user_email": os.environ.get("ONEDRIVE_USER_EMAIL", ""),
+            },
+        ),
+        "outlook": ToolConfig(
+            enabled=os.environ.get("OUTLOOK_ENABLED", "false").lower() == "true",
+            config={
+                "tenant_id": os.environ.get("OUTLOOK_TENANT_ID", ""),
+                "client_id": os.environ.get("OUTLOOK_CLIENT_ID", ""),
+                "client_secret": os.environ.get("OUTLOOK_CLIENT_SECRET", ""),
+                "user_email": os.environ.get("OUTLOOK_USER_EMAIL", ""),
+            },
+        ),
+        "notion": ToolConfig(
+            enabled=os.environ.get("NOTION_ENABLED", "false").lower() == "true",
+            config={
+                "api_token": os.environ.get("NOTION_API_TOKEN", ""),
             },
         ),
     }

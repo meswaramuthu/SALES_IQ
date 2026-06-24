@@ -91,6 +91,7 @@ def get_tools() -> list[Callable]:
                         "from": hdrs.get("From", ""),
                         "date": hdrs.get("Date", ""),
                         "snippet": meta.get("snippet", ""),
+                        "web_link": f"https://mail.google.com/mail/u/0/#all/{msg['id']}",
                     }
                 )
             return {"messages": summaries, "count": len(summaries)}

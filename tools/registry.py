@@ -14,9 +14,10 @@ from typing import Callable
 
 from tools.a2a import a2a_tools
 from tools.atlassian import confluence_tool, jira_tool
-from tools.google import gemini_connector_tool, gmail_tool
+from tools.google import gemini_connector_tool, gdrive_tool, gmail_tool
 from tools.github import github_tool
-from tools.microsoft import sharepoint_tool
+from tools.microsoft import sharepoint_tool, onedrive_tool, outlook_tool
+from tools.notion import notion_tool
 from tools.rag import user_rag_tool
 
 
@@ -25,10 +26,14 @@ def get_all_tools() -> list[Callable]:
     tools.extend(user_rag_tool.get_tools())
     tools.extend(gemini_connector_tool.get_tools())
     tools.extend(gmail_tool.get_tools())
+    tools.extend(gdrive_tool.get_tools())
     tools.extend(github_tool.get_tools())
     tools.extend(jira_tool.get_tools())
     tools.extend(confluence_tool.get_tools())
     tools.extend(sharepoint_tool.get_tools())
+    tools.extend(onedrive_tool.get_tools())
+    tools.extend(outlook_tool.get_tools())
+    tools.extend(notion_tool.get_tools())
     # A2A tools — route to independently deployed CRM, Enrichment, WebScraper agents
     tools.extend(a2a_tools.get_tools())
     return tools

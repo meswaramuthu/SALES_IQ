@@ -36,8 +36,14 @@ gcloud run deploy stratova-calendar-mcp \
   --max-instances 5 \
   --timeout 300
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+source "$REPO_ROOT/deployment/secret_utils.sh"
+
 echo "Deployed. URL:"
-gcloud run services describe stratova-calendar-mcp \
+SERVICE_URL="$(gcloud run services describe stratova-calendar-mcp \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
-  --format "value(status.url)"
+  --format "value(status.url)")"
+echo "${SERVICE_URL}"
+
+save_secret "laabu-mcp-calendar-url" "${SERVICE_URL}" "${PROJECT_ID}"
