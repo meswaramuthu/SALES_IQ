@@ -24,6 +24,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENTERPRISE_GPT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"   # agents/knowledge-iq/enterpriseGPT/
+REPO_ROOT="$(cd "$ENTERPRISE_GPT_DIR/../../.." && pwd)"  # laabu-ai-app/ — Docker build context
 
 # ── Required ─────────────────────────────────────────────────────────────────
 : "${GCP_PROJECT:?Set GCP_PROJECT}"
@@ -69,8 +70,8 @@ _ensure_secret "GITHUB_TOKEN"
 _ensure_secret "SYNC_GITHUB_WEBHOOK_SECRET"
 
 echo "▶ Building image: ${IMAGE}"
-# Build from enterpriseGPT/ so scheduler/ package is at the Docker build context root
-docker build -t "${IMAGE}" -f "${ENTERPRISE_GPT_DIR}/scheduler/Dockerfile" "${ENTERPRISE_GPT_DIR}"
+# Build context is repo root so the Dockerfile can COPY config.py and tools/utils/
+docker build -t "${IMAGE}" -f "${ENTERPRISE_GPT_DIR}/scheduler/Dockerfile" "${REPO_ROOT}"
 
 echo "▶ Pushing image"
 docker push "${IMAGE}"
