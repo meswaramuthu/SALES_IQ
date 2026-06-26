@@ -92,6 +92,8 @@ if gcloud run jobs describe "${JOB_NAME}" --region="${REGION}" &>/dev/null; then
     gcloud run jobs update "${JOB_NAME}" \
         --image="${IMAGE}" \
         --region="${REGION}" \
+        --command="python" \
+        --args="-m,scheduler.job" \
         --set-env-vars="${COMMON_ENV}" \
         --set-secrets="SHAREPOINT_CLIENT_SECRET=SHAREPOINT_CLIENT_SECRET:latest,GITHUB_TOKEN=GITHUB_TOKEN:latest" \
         ${SA_FLAG}
@@ -99,6 +101,8 @@ else
     gcloud run jobs create "${JOB_NAME}" \
         --image="${IMAGE}" \
         --region="${REGION}" \
+        --command="python" \
+        --args="-m,scheduler.job" \
         --set-env-vars="${COMMON_ENV}" \
         --set-secrets="SHAREPOINT_CLIENT_SECRET=SHAREPOINT_CLIENT_SECRET:latest,GITHUB_TOKEN=GITHUB_TOKEN:latest" \
         --task-timeout=3600 \
