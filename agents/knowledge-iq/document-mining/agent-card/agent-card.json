@@ -1,0 +1,82 @@
+{
+  "name": "document_mining_agent",
+  "version": "1.0.0",
+  "description": "Ingests documents into the Knowledge-IQ RAG corpus with AI-powered analysis, metadata tagging, and accessibility scope control (organization vs department).",
+  "capabilities": {
+    "input_formats": ["text", "google_drive_url", "gcs_uri"],
+    "supported_extensions": [".pdf", ".docx", ".pptx", ".txt", ".md", ".html", ".json", ".py", ".sql", ".xlsx", ".csv"],
+    "accessibility_scopes": ["organization", "department"],
+    "departments": ["sales", "engineering", "hr", "finance", "legal", "marketing", "operations", "executive", "product", "support"]
+  },
+  "skills": [
+    {
+      "id": "analyze_document",
+      "name": "Analyze Document",
+      "description": "AI-powered analysis of document content to extract category, type, keywords, topic, and suggested accessibility scope.",
+      "input": {
+        "content_sample": "First ~3000 characters of document text",
+        "filename": "Original filename"
+      },
+      "output": {
+        "doc_category": "High-level category (contract, financial, technical, hr_policy, ...)",
+        "doc_type": "Fine-grained type (sow, invoice, spec, meeting_notes, ...)",
+        "topic": "2-4 word topic summary",
+        "keywords": "Comma-separated keywords",
+        "suggested_departments": "Departments most likely to need this document",
+        "suggested_scope": "organization or department",
+        "analysis_summary": "Human-readable summary for presenting to user"
+      },
+      "examples": [
+        "Analyze this sales contract before uploading",
+        "What type of document is this?",
+        "Suggest tags for this document"
+      ]
+    },
+    {
+      "id": "upload_document",
+      "name": "Upload Document to Knowledge Base",
+      "description": "Upload a document with full metadata tagging: source agent attribution, document category/type, keywords, and accessibility scope. Always runs analysis first and confirms scope with user.",
+      "input": {
+        "display_name": "Friendly document name",
+        "extracted_text": "Full document text (for inline uploads)",
+        "source": "Google Drive URL or GCS URI (alternative to extracted_text)",
+        "source_agent": "Agent or system that triggered this upload (e.g. crm_agent)",
+        "doc_category": "Document category",
+        "doc_type": "Document type",
+        "accessibility_scope": "organization or department",
+        "departments": "Comma-separated department names when scope=department"
+      },
+      "output": {
+        "status": "success or error",
+        "rag_file_name": "RAG corpus file resource name",
+        "accessibility_scope": "Applied scope",
+        "departments": "Applied departments (if scope=department)",
+        "tags_applied": "All metadata tags applied to the document"
+      },
+      "examples": [
+        "Upload this Q3 revenue report accessible to finance and executive only",
+        "Add this engineering spec to the knowledge base for the whole org",
+        "Index this sales contract — crm_agent requested it for the sales department"
+      ]
+    },
+    {
+      "id": "list_documents",
+      "name": "List Knowledge Base Documents",
+      "description": "List uploaded documents with optional filters by scope, department, or source agent.",
+      "input": {
+        "filter_scope": "organization or department (optional)",
+        "filter_department": "Department name (optional)",
+        "filter_source_agent": "Source agent name (optional)"
+      },
+      "output": {
+        "documents": "List of documents with name, scope, and departments",
+        "count": "Total matching documents"
+      },
+      "examples": [
+        "Show all documents uploaded by the CRM agent",
+        "List documents accessible to the sales department",
+        "What documents are in the knowledge base?"
+      ]
+    }
+  ]
+}

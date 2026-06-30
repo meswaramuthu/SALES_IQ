@@ -1,0 +1,16 @@
+{
+  "prompt": {
+    "source": "local"
+  },
+  "tools": {
+    "rag": {
+      "enabled": true,
+      "config": {
+        "corpus": "env:RAG_CORPUS",
+        "chunk_size": 512,
+        "chunk_overlap": 100,
+        "scope_registry_uri": "env:SCOPE_REGISTRY_URI"
+      }
+    }
+  }
+}

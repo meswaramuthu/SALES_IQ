@@ -8,26 +8,58 @@ The agent is constructed once at module load time. Dynamic behaviour comes from:
 from __future__ import annotations
 
 import os
+import sys
 
-import google.auth
+# Ensure the repo root (two levels up from this file) is on sys.path so that
+# the top-level `tools/` package is importable regardless of how ADK launches
+# this module (PYTHONPATH from .env is set too late to affect sys.path).
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from dotenv import load_dotenv
-from google.adk.agents import Agent
-
-from prompts import build_instruction
-from tools.registry import get_all_tools
 
 load_dotenv()
+
+import google.auth
+from google.adk.agents import Agent
+
+from google.genai import types as genai_types
+
+from file_converter import convert_to_text
+from prompts import build_instruction
+from tools.registry import get_all_tools
 
 _, project_id = google.auth.default()
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 
+
+def _convert_office_files(callback_context, llm_request) -> None:
+    """Convert unsupported Office attachments to text before sending to Gemini."""
+    for content in llm_request.contents:
+        if not getattr(content, "parts", None):
+            continue
+        new_parts = []
+        for part in content.parts:
+            inline = getattr(part, "inline_data", None)
+            if inline is not None:
+                text = convert_to_text(inline.mime_type or "", inline.data)
+                if text is not None:
+                    new_parts.append(genai_types.Part(text=text))
+                    continue
+            new_parts.append(part)
+        content.parts = new_parts
+    return None
+
+
 root_agent = Agent(
     model="gemini-2.5-flash",
     name="knowledge_iq_agent",
     instruction=build_instruction,
     tools=get_all_tools(),
+    before_model_callback=_convert_office_files,
 )
 
 app = root_agent

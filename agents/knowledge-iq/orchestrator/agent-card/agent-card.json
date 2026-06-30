@@ -1,0 +1,51 @@
+{
+  "name": "knowledge_iq_orchestrator",
+  "version": "1.0.0",
+  "description": "Central router for all Knowledge-IQ operations. Routes document upload requests to the document-mining agent and knowledge search requests to the search agent. All agents that need to store or retrieve organisational knowledge should call this orchestrator.",
+  "capabilities": {
+    "routing": [
+      "document_upload → document_mining_agent",
+      "knowledge_search → knowledge_search_agent"
+    ]
+  },
+  "skills": [
+    {
+      "id": "route_upload",
+      "name": "Route Document Upload",
+      "description": "Accepts a document upload request from any agent and routes it to the document-mining agent for analysis, scope confirmation, and RAG ingestion with full metadata tagging.",
+      "input": {
+        "document_content": "The document text, Drive URL, or GCS URI",
+        "display_name": "Friendly document name",
+        "source_agent": "Name of the agent requesting the upload (e.g. crm_agent)",
+        "context": "Any additional context about the document"
+      },
+      "output": {
+        "routed_to": "document_mining_agent",
+        "result": "Upload confirmation with applied tags and accessibility scope"
+      },
+      "examples": [
+        "Upload this sales contract to the knowledge base — requested by crm_agent",
+        "Index this technical specification document",
+        "Store this meeting summary in the knowledge base",
+        "Add this document from gs://bucket/report.pdf"
+      ]
+    },
+    {
+      "id": "route_search",
+      "name": "Route Knowledge Search",
+      "description": "Routes any knowledge query to the search agent, which searches across all connected data sources.",
+      "input": {
+        "query": "The knowledge question or search request"
+      },
+      "output": {
+        "routed_to": "knowledge_search_agent",
+        "result": "Answer with cited sources"
+      },
+      "examples": [
+        "Find our Q3 revenue figures",
+        "What is our remote work policy?",
+        "Search for documentation on the payments API"
+      ]
+    }
+  ]
+}

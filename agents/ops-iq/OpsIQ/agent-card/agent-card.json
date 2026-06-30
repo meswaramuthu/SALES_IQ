@@ -1,0 +1,80 @@
+{
+  "name": "Ops IQ",
+  "version": "1.0.0",
+  "description": "GCP resource monitoring and observability agent for the Stratova AI platform. Monitors Vertex AI quotas and usage limits, LLM token consumption per model, Cloud Monitoring time-series metrics (request counts, latency, error rates), and per-user chat interaction history via Firestore. Dynamically enables/disables monitoring modules without redeployment.",
+  "gcs_card_path": "gs://stratova-platform/agents/ops-iq/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": [
+    {
+      "id": "quota_monitoring",
+      "name": "Quota Monitoring",
+      "description": "List and inspect GCP service quota limits and preferences for aiplatform.googleapis.com and other services. Identifies quota headroom, fixed quotas, and pending increase requests.",
+      "input": "Natural language: 'What are our Vertex AI quota limits?', 'Are we close to any rate limits?', 'Show quota increase requests'",
+      "output": "quota_id, metric name, current limit, unit, headroom warnings for quotas at >80% utilisation",
+      "examples": [
+        "What are our Vertex AI quota limits?",
+        "Are we close to any API rate limits?",
+        "Show all pending quota increase requests",
+        "Which quotas are fixed and cannot be increased?",
+        "Give me a quota headroom summary"
+      ]
+    },
+    {
+      "id": "llm_usage_metrics",
+      "name": "LLM Usage Metrics",
+      "description": "Query Cloud Monitoring time-series data for Vertex AI / Gemini usage: input and output token counts, request rates, server-side latency (p50/p95), and error rates. Broken down by model. Covers the publisher/online_serving metric family.",
+      "input": "Natural language: 'How many tokens did we use today?', 'What is the error rate on gemini-2.5-flash?', 'Show latency by model for the last 7 days'",
+      "output": "token counts (input/output/total) per model, request counts, latency percentiles in ms, error rate % with alerts",
+      "examples": [
+        "How many tokens did we use in the last 24 hours?",
+        "Which model is consuming the most tokens?",
+        "What is the p95 latency for gemini-2.5-flash?",
+        "Are there any models with error rates above 1%?",
+        "Show me Agent Engine request counts for the last week"
+      ]
+    },
+    {
+      "id": "vertex_resource_inventory",
+      "name": "Vertex AI Resource Inventory",
+      "description": "List all deployed Vertex AI Agent Engines (Reasoning Engines), online prediction endpoints, and deployed models. Returns state (ACTIVE/FAILED/UPDATING), timestamps, and configuration.",
+      "input": "Natural language: 'List all deployed agents', 'What endpoints do we have?', 'Is the Knowledge IQ agent running?'",
+      "output": "resource names, display names, states, create/update timestamps, deployed model details",
+      "examples": [
+        "List all Vertex AI Agent Engine deployments",
+        "What is the state of each deployed agent?",
+        "Show all online prediction endpoints",
+        "List the models deployed to our endpoints",
+        "Give me a Vertex AI resource summary"
+      ]
+    },
+    {
+      "id": "user_usage_tracking",
+      "name": "Per-User Usage Tracking",
+      "description": "Query Firestore for per-user and per-session LLM usage: token consumption, request counts, agents used, and chronological interaction history. Populated by the shared after_model_callback on opted-in agents.",
+      "input": "Natural language: 'How much has alice@stratova.ai used?', 'Who are the top 10 users by tokens?', 'Show me the last 20 interactions for Bob'",
+      "output": "total_input_tokens, total_output_tokens, request_count, per_agent_breakdown, ranked user leaderboard, session event list",
+      "examples": [
+        "How many tokens has abdul@stratova.ai used this week?",
+        "Show the top 10 users by token consumption in the last 30 days",
+        "Show the last 20 chat interactions for a specific user",
+        "Which agent is used the most across the platform?",
+        "Give me a per-agent usage breakdown for today"
+      ]
+    },
+    {
+      "id": "platform_health_overview",
+      "name": "Platform Health Overview",
+      "description": "Combined health summary covering quota headroom, token burn rate, request volume, error rate alerts, and Vertex AI resource states. Single-call overview for periodic health reports.",
+      "input": "Natural language: 'Platform health report', 'How is the platform doing?', 'Any anomalies today?'",
+      "output": "structured summary: anomalies | quotas | tokens | requests | resource inventory",
+      "examples": [
+        "Give me a platform health report",
+        "Are there any anomalies or alerts right now?",
+        "How is our Vertex AI platform performing today?",
+        "Show me a combined metrics and quota summary"
+      ]
+    }
+  ]
+}
