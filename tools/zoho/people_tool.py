@@ -1,13 +1,21 @@
 """Zoho People tool — Zoho People REST API v2.
 
-Required credentials (set in tools_config.json or env vars):
-  access_token : Zoho OAuth2 access token with ZOHOPEOPLE.employee.ALL scope
-  base_url     : Data centre base URL (default https://people.zoho.com)
-                   EU: https://people.zoho.eu
-                   IN: https://people.zoho.in
+Required credentials (set in tools_config.json):
+  client_id     : Zoho OAuth2 client ID
+  client_secret : Zoho OAuth2 client secret
+  refresh_token : Zoho OAuth2 refresh token (permanent — never needs rotation)
+  base_url      : Data centre base URL (default https://people.zoho.com)
+                    EU: https://people.zoho.eu
+                    IN: https://people.zoho.in
+  accounts_url  : (optional) Zoho accounts domain for token refresh
 
 In tools_config.json, reference secrets as:
-  "access_token": "env:ZOHO_PEOPLE_ACCESS_TOKEN"
+  "client_id":     "env:ZOHO_CLIENT_ID"
+  "client_secret": "env:ZOHO_CLIENT_SECRET"
+  "refresh_token": "env:ZOHO_REFRESH_TOKEN"
+
+The access token is fetched and cached automatically; it never needs to be
+stored or rotated manually.
 
 Tools exported:
   READ
@@ -42,8 +50,10 @@ logger = logging.getLogger(__name__)
 
 def _session(cfg: dict):
     import requests
+    from tools.zoho.auth import get_zoho_access_token
+    token = get_zoho_access_token(cfg)
     sess = requests.Session()
-    sess.headers.update({"Authorization": f"Zoho-oauthtoken {cfg.get('access_token', '')}"})
+    sess.headers.update({"Authorization": f"Zoho-oauthtoken {token}"})
     base = cfg.get("base_url", "https://people.zoho.com").rstrip("/")
     return sess, base
 

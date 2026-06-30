@@ -1,15 +1,25 @@
 """Zoho CRM tool — Zoho CRM REST API v6.
 
-Required credentials (set in tools_config.json or env vars):
-  access_token  : Zoho OAuth2 access token (generate via self-client or server-based app)
-  base_url      : API base URL for your data centre, e.g.
-                    https://www.zohoapis.com   (US)
-                    https://www.zohoapis.eu    (EU)
-                    https://www.zohoapis.in    (IN)
+Required credentials (set in tools_config.json):
+  client_id     : Zoho OAuth2 client ID
+  client_secret : Zoho OAuth2 client secret
+  refresh_token : Zoho OAuth2 refresh token (permanent — never needs rotation)
+  base_url      : API base URL for your data centre
+                    https://www.zohoapis.com    (US, default)
+                    https://www.zohoapis.eu     (EU)
+                    https://www.zohoapis.in     (IN)
                     https://www.zohoapis.com.au (AU)
+  accounts_url  : (optional) Zoho accounts domain for token refresh
+                    https://accounts.zoho.com  (default)
+                    https://accounts.zoho.eu / .in / .com.au for other DCs
 
 In tools_config.json, reference secrets as:
-  "access_token": "env:ZOHO_CRM_ACCESS_TOKEN"
+  "client_id":     "env:ZOHO_CLIENT_ID"
+  "client_secret": "env:ZOHO_CLIENT_SECRET"
+  "refresh_token": "env:ZOHO_REFRESH_TOKEN"
+
+The access token is fetched and cached automatically; it never needs to be
+stored or rotated manually.
 
 Tools exported:
   READ
@@ -42,8 +52,10 @@ logger = logging.getLogger(__name__)
 
 def _session(cfg: dict):
     import requests
+    from tools.zoho.auth import get_zoho_access_token
+    token = get_zoho_access_token(cfg)
     sess = requests.Session()
-    sess.headers.update({"Authorization": f"Zoho-oauthtoken {cfg.get('access_token', '')}"})
+    sess.headers.update({"Authorization": f"Zoho-oauthtoken {token}"})
     return sess, cfg.get("base_url", "https://www.zohoapis.com").rstrip("/")
 
 

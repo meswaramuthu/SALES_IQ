@@ -150,6 +150,16 @@ def _build_from_env() -> AgentConfig:
                 "user_email": os.environ.get("GDRIVE_USER_EMAIL", ""),
             },
         ),
+        "gchat": ToolConfig(
+            enabled=os.environ.get("GCHAT_ENABLED", "false").lower() == "true",
+            config={
+                "service_account_key_gcs_uri": os.environ.get(
+                    "GCHAT_SA_KEY_GCS_URI",
+                    os.environ.get("GDRIVE_SA_KEY_GCS_URI", ""),  # reuse gdrive key by default
+                ),
+                "user_email": os.environ.get("GCHAT_USER_EMAIL", os.environ.get("GDRIVE_USER_EMAIL", "")),
+            },
+        ),
         "github": ToolConfig(
             enabled=os.environ.get("GITHUB_ENABLED", "false").lower() == "true",
             config={

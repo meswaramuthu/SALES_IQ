@@ -1,16 +1,24 @@
 """Zoho Books tool — Zoho Books REST API v3.
 
-Required credentials (set in tools_config.json or env vars):
-  access_token    : Zoho OAuth2 access token (scope: ZohoBooks.fullaccess.all)
+Required credentials (set in tools_config.json):
+  client_id       : Zoho OAuth2 client ID
+  client_secret   : Zoho OAuth2 client secret
+  refresh_token   : Zoho OAuth2 refresh token (permanent — never needs rotation)
   organization_id : Zoho Books organization ID
                     (Settings → Organization Profile → Organization ID)
   base_url        : Data centre base URL (default https://www.zohoapis.com)
                       EU: https://www.zohoapis.eu
                       IN: https://www.zohoapis.in
+  accounts_url    : (optional) Zoho accounts domain for token refresh
 
 In tools_config.json, reference secrets as:
-  "access_token":    "env:ZOHO_BOOKS_ACCESS_TOKEN"
+  "client_id":       "env:ZOHO_CLIENT_ID"
+  "client_secret":   "env:ZOHO_CLIENT_SECRET"
+  "refresh_token":   "env:ZOHO_REFRESH_TOKEN"
   "organization_id": "env:ZOHO_BOOKS_ORG_ID"
+
+The access token is fetched and cached automatically; it never needs to be
+stored or rotated manually.
 
 Tools exported:
   READ
@@ -49,8 +57,10 @@ logger = logging.getLogger(__name__)
 
 def _session(cfg: dict):
     import requests
+    from tools.zoho.auth import get_zoho_access_token
+    token = get_zoho_access_token(cfg)
     sess = requests.Session()
-    sess.headers.update({"Authorization": f"Zoho-oauthtoken {cfg.get('access_token', '')}"})
+    sess.headers.update({"Authorization": f"Zoho-oauthtoken {token}"})
     org_id = str(cfg.get("organization_id", ""))
     base = cfg.get("base_url", "https://www.zohoapis.com").rstrip("/") + "/books/v3"
     return sess, base, org_id

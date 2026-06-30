@@ -1,15 +1,22 @@
 """Google Chat tool — Google Chat API v1 via google-api-python-client.
 
-Required credentials (set in tools_config.json or env vars):
-  credentials_json : Path to service account JSON file, OR
-  access_token     : Short-lived OAuth2 access token
-  Use service account with the Chat API scope:
-    https://www.googleapis.com/auth/chat.messages
-    https://www.googleapis.com/auth/chat.spaces
+Uses the same service account as Gmail and GDrive (google-sa.json in GCS).
+No separate credential setup needed — just add the Chat API scopes to the
+existing domain-wide delegation entry in Google Workspace Admin:
+  https://www.googleapis.com/auth/chat.messages
+  https://www.googleapis.com/auth/chat.spaces
+  https://www.googleapis.com/auth/chat.memberships
 
-In tools_config.json, reference secrets as:
-  "credentials_json": "env:GCHAT_CREDENTIALS_JSON"
-  "access_token":     "env:GCHAT_ACCESS_TOKEN"
+Credential resolution order (first match wins):
+  1. service_account_key_gcs_uri  — GCS path to service account JSON (preferred,
+                                     same key used by gmail / gdrive tools)
+  2. credentials_json             — local file path or raw JSON string
+  3. access_token                 — short-lived bearer token (dev/testing only)
+  4. Application Default Credentials (Cloud Run / GCE implicit auth)
+
+In tools_config.json:
+  "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json"
+  "user_email": "abdul@stratova.ai"   (optional — enables domain-wide delegation)
 
 Tools exported:
   READ
@@ -53,15 +60,20 @@ def _service(cfg: dict):
         "https://www.googleapis.com/auth/chat.memberships",
     ]
 
+    gcs_uri = cfg.get("service_account_key_gcs_uri", "")
     creds_json = cfg.get("credentials_json", "")
     access_token = cfg.get("access_token", "")
 
-    if creds_json:
-        if creds_json.startswith("{"):
-            info = json.loads(creds_json)
-        else:
-            with open(creds_json) as f:
-                info = json.load(f)
+    if gcs_uri:
+        # Same GCS key used by gmail / gdrive — no extra secret needed.
+        from tools.utils.gcs_utils import read_gcs_bytes
+        key_info = json.loads(read_gcs_bytes(gcs_uri))
+        creds = service_account.Credentials.from_service_account_info(key_info, scopes=scopes)
+        user_email = cfg.get("user_email", "")
+        if user_email:
+            creds = creds.with_subject(user_email)
+    elif creds_json:
+        info = json.loads(creds_json) if creds_json.startswith("{") else json.load(open(creds_json))
         creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
     elif access_token:
         from google.oauth2.credentials import Credentials

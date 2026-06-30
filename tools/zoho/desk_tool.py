@@ -1,17 +1,25 @@
 """Zoho Desk tool — Zoho Desk REST API v1.
 
-Required credentials (set in tools_config.json or env vars):
-  access_token : Zoho OAuth2 access token with Desk.tickets.ALL scope
-  org_id       : Your Zoho Desk organization ID
-                 (visible at desk.zoho.com → Settings → Developer Space → API)
-  base_url     : Data centre base URL (default https://desk.zoho.com)
-                   EU: https://desk.zoho.eu
-                   IN: https://desk.zoho.in
-                   AU: https://desk.zoho.com.au
+Required credentials (set in tools_config.json):
+  client_id     : Zoho OAuth2 client ID
+  client_secret : Zoho OAuth2 client secret
+  refresh_token : Zoho OAuth2 refresh token (permanent — never needs rotation)
+  org_id        : Your Zoho Desk organization ID
+                  (desk.zoho.com → Settings → Developer Space → API)
+  base_url      : Data centre base URL (default https://desk.zoho.com)
+                    EU: https://desk.zoho.eu
+                    IN: https://desk.zoho.in
+                    AU: https://desk.zoho.com.au
+  accounts_url  : (optional) Zoho accounts domain for token refresh
 
 In tools_config.json, reference secrets as:
-  "access_token": "env:ZOHO_DESK_ACCESS_TOKEN"
-  "org_id":       "env:ZOHO_DESK_ORG_ID"
+  "client_id":     "env:ZOHO_CLIENT_ID"
+  "client_secret": "env:ZOHO_CLIENT_SECRET"
+  "refresh_token": "env:ZOHO_REFRESH_TOKEN"
+  "org_id":        "env:ZOHO_DESK_ORG_ID"
+
+The access token is fetched and cached automatically; it never needs to be
+stored or rotated manually.
 
 Tools exported:
   READ
@@ -47,12 +55,14 @@ logger = logging.getLogger(__name__)
 
 def _session(cfg: dict):
     import requests
+    from tools.zoho.auth import get_zoho_access_token
     org_id = cfg.get("org_id", "")
     if not org_id:
         raise ValueError("Zoho Desk org_id is required but not configured.")
+    token = get_zoho_access_token(cfg)
     sess = requests.Session()
     sess.headers.update({
-        "Authorization": f"Zoho-oauthtoken {cfg.get('access_token', '')}",
+        "Authorization": f"Zoho-oauthtoken {token}",
         "orgId": str(org_id),
     })
     return sess, cfg.get("base_url", "https://desk.zoho.com").rstrip("/") + "/api/v1"

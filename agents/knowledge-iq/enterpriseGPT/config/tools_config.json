@@ -49,6 +49,13 @@
         "user_email": "abdul@stratova.ai"
       }
     },
+    "gchat": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "abdul@stratova.ai"
+      }
+    },
     "github": {
       "enabled": true,
       "config": {
@@ -126,6 +133,48 @@
       "resource_name": "projects/528271267622/locations/us-central1/reasoningEngines/2288257969994858496",
       "agent_card_url": "gs://stratova-platform/agents/laabu-web-scraper-agent/agent-card/agent-card.json",
       "description": "URL scraping"
+    }
+  },
+  "zoho_crm": {
+    "enabled": false,
+    "config": {
+      "client_id": "env:ZOHO_CLIENT_ID",
+      "client_secret": "env:ZOHO_CLIENT_SECRET",
+      "refresh_token": "env:ZOHO_REFRESH_TOKEN",
+      "base_url": "https://www.zohoapis.com",
+      "accounts_url": "https://accounts.zoho.com"
+    }
+  },
+  "zoho_desk": {
+    "enabled": false,
+    "config": {
+      "client_id": "env:ZOHO_CLIENT_ID",
+      "client_secret": "env:ZOHO_CLIENT_SECRET",
+      "refresh_token": "env:ZOHO_REFRESH_TOKEN",
+      "org_id": "env:ZOHO_DESK_ORG_ID",
+      "base_url": "https://desk.zoho.com",
+      "accounts_url": "https://accounts.zoho.com"
+    }
+  },
+  "zoho_books": {
+    "enabled": false,
+    "config": {
+      "client_id": "env:ZOHO_CLIENT_ID",
+      "client_secret": "env:ZOHO_CLIENT_SECRET",
+      "refresh_token": "env:ZOHO_REFRESH_TOKEN",
+      "organization_id": "env:ZOHO_BOOKS_ORG_ID",
+      "base_url": "https://www.zohoapis.com",
+      "accounts_url": "https://accounts.zoho.com"
+    }
+  },
+  "zoho_people": {
+    "enabled": false,
+    "config": {
+      "client_id": "env:ZOHO_CLIENT_ID",
+      "client_secret": "env:ZOHO_CLIENT_SECRET",
+      "refresh_token": "env:ZOHO_REFRESH_TOKEN",
+      "base_url": "https://people.zoho.com",
+      "accounts_url": "https://accounts.zoho.com"
     }
   }
 }
