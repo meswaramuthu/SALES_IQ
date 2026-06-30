@@ -1,8 +1,4 @@
-"""Dynamic, GCS-backed config loader for the Knowledge-IQ Orchestrator.
-
-Same TTL-caching pattern as enterpriseGPT. Sub-agents are declared under
-the `sub_agents` key and dynamically registered as callable A2A tools.
-"""
+"""Dynamic, GCS-backed config loader for the Personal Assistant agent."""
 from __future__ import annotations
 
 import json
@@ -58,7 +54,6 @@ class ConfigLoader:
         self._last_loaded = 0.0
 
     def _load(self) -> AgentConfig:
-        # When USE_LOCAL_CONFIG=1, skip GCS and load from the local config file.
         local_path = os.path.join(os.path.dirname(__file__), "config", "tools_config.json")
         if os.environ.get("USE_LOCAL_CONFIG") == "1" and os.path.isfile(local_path):
             try:
@@ -66,10 +61,12 @@ class ConfigLoader:
                     data = json.load(f)
                 cfg = AgentConfig.model_validate(data)
                 _resolve_env_refs(cfg)
-                logger.info("Loaded orchestrator config from local file: %s", local_path)
+                logger.info("Loaded personal_assistant config from local file: %s", local_path)
                 return cfg
             except Exception as exc:
-                logger.warning("Local config load failed (%s): %s — falling back to GCS.", local_path, exc)
+                logger.warning(
+                    "Local config load failed (%s): %s — falling back to GCS.", local_path, exc
+                )
 
         config_uri = os.environ.get("TOOLS_CONFIG_GCS_URI")
         if config_uri:
@@ -78,10 +75,12 @@ class ConfigLoader:
                 data = json.loads(read_gcs_text(config_uri))
                 cfg = AgentConfig.model_validate(data)
                 _resolve_env_refs(cfg)
-                logger.info("Loaded orchestrator config from GCS: %s", config_uri)
+                logger.info("Loaded personal_assistant config from GCS: %s", config_uri)
                 return cfg
             except Exception as exc:
-                logger.warning("GCS config load failed (%s): %s — falling back to env vars.", config_uri, exc)
+                logger.warning(
+                    "GCS config load failed (%s): %s — falling back to env vars.", config_uri, exc
+                )
 
         return _build_from_env()
 
@@ -106,37 +105,37 @@ def _resolve_env_refs(cfg: AgentConfig) -> None:
 
 
 def _build_from_env() -> AgentConfig:
-    sub_agents: dict[str, SubAgentConfig] = {}
+    tools: dict[str, ToolConfig] = {}
 
-    # Document-mining agent (handles all upload + tagging requests)
+    corpus = os.environ.get("RAG_CORPUS", "")
+    personal_registry_uri = os.environ.get(
+        "PERSONAL_REGISTRY_URI",
+        "gs://stratova-platform/knowledge-iq/personal_file_registry.json",
+    )
+    if corpus:
+        tools["rag"] = ToolConfig(
+            enabled=True,
+            config={
+                "corpus": corpus,
+                "personal_registry_uri": personal_registry_uri,
+                "similarity_top_k": 5,
+                "vector_distance_threshold": 0.6,
+            },
+        )
+
+    sub_agents: dict[str, SubAgentConfig] = {}
     dm_resource = os.environ.get("DOCUMENT_MINING_AGENT_RESOURCE_NAME", "")
     if dm_resource:
         sub_agents["document_mining_agent"] = SubAgentConfig(
             enabled=True,
             resource_name=dm_resource,
-            agent_card_url=os.environ.get("DOCUMENT_MINING_AGENT_CARD_URL", ""),
             description=(
-                "Handles document upload requests: analyzes content, "
-                "confirms accessibility scope with the user, and ingests "
-                "documents into the knowledge base with full metadata tagging."
-            ),
-        )
-
-    # Knowledge search agent (enterpriseGPT — answers knowledge queries)
-    search_resource = os.environ.get("KNOWLEDGE_SEARCH_AGENT_RESOURCE_NAME", "")
-    if search_resource:
-        sub_agents["knowledge_search_agent"] = SubAgentConfig(
-            enabled=True,
-            resource_name=search_resource,
-            agent_card_url=os.environ.get("KNOWLEDGE_SEARCH_AGENT_CARD_URL", ""),
-            description=(
-                "Searches and retrieves information from the organisational "
-                "knowledge base across all connected data sources."
+                "Handles document analysis and upload to the personal knowledge base."
             ),
         )
 
     return AgentConfig(
-        tools={},
+        tools=tools,
         prompt=PromptConfig(
             source="gcs" if os.environ.get("PROMPT_GCS_URI") else "local",
             gcs_uri=os.environ.get("PROMPT_GCS_URI"),

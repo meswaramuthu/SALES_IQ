@@ -1,0 +1,25 @@
+{
+  "prompt": {
+    "source": "local"
+  },
+  "tools": {
+    "rag": {
+      "enabled": true,
+      "config": {
+        "corpus": "env:RAG_CORPUS",
+        "personal_registry_uri": "env:PERSONAL_REGISTRY_URI",
+        "scope_registry_uri": "env:PERSONAL_REGISTRY_URI",
+        "similarity_top_k": 5,
+        "vector_distance_threshold": 0.6
+      }
+    }
+  },
+  "sub_agents": {
+    "document_mining_agent": {
+      "enabled": true,
+      "resource_name": "env:DOCUMENT_MINING_AGENT_RESOURCE_NAME",
+      "agent_card_url": "gs://stratova-platform/agents/knowledge-iq/document-intelligence/agent-card.json",
+      "description": "Handles document analysis and upload to the personal knowledge base with personal scope."
+    }
+  }
+}

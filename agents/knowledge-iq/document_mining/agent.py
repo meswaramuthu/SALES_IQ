@@ -17,8 +17,14 @@ import google.auth
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 
-from dm_tools import get_tools
-from prompts import build_instruction
+from tools.rag.rag_ingest_tool import build_rag_ingest_tools
+
+try:
+    from .config import get_config       # adk web: loaded as package
+    from .prompts import build_instruction
+except ImportError:
+    from config import get_config        # Agent Engine: flat bundle
+    from prompts import build_instruction
 
 load_dotenv()
 
@@ -31,7 +37,7 @@ root_agent = Agent(
     model="gemini-2.5-flash",
     name="document_mining_agent",
     instruction=build_instruction,
-    tools=get_tools(),
+    tools=build_rag_ingest_tools(config_getter=get_config),
 )
 
 app = root_agent

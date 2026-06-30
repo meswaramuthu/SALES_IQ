@@ -1,6 +1,6 @@
-"""Document-mining agent tool implementations.
+"""Org-level RAG document ingestion tools.
 
-Tools exposed by this module:
+Tools exposed:
   analyze_document_content          — AI analysis: category, type, keywords, suggested scope
   upload_document_to_knowledge_base — Upload with full metadata tagging + scope registration
   list_knowledge_base_documents     — List docs with scope/department/agent filters
@@ -15,6 +15,11 @@ Metadata tags applied to every RAG file:
   departments         — comma-separated department names (when scope=department)
   uploaded_by         — authenticated user ID / email
   uploaded_at         — ISO-8601 UTC timestamp
+
+Usage:
+    from tools.rag.rag_ingest_tool import build_rag_ingest_tools
+
+    tools = build_rag_ingest_tools(config_getter=get_config)
 """
 from __future__ import annotations
 
@@ -24,6 +29,15 @@ import re
 import tempfile
 from datetime import datetime, timezone
 from typing import Callable
+
+from tools.rag.rag_ingest_utils import (
+    KNOWN_DEPARTMENTS,
+    analyze_document,
+    get_all_registry,
+    register_dept_files,
+    register_org_file,
+    register_personal_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +51,13 @@ _RAG_EXTS = frozenset({
 
 _DRIVE_URL_RE = re.compile(r"https://drive\.google\.com/")
 
+AVAILABLE_DEPARTMENTS = KNOWN_DEPARTMENTS
+
 _DEFAULT_SCOPE_REGISTRY_URI = "gs://stratova-platform/knowledge-iq/scope_file_registry.json"
 
-AVAILABLE_DEPARTMENTS = [
-    "sales", "engineering", "hr", "finance", "legal",
-    "marketing", "operations", "executive", "product", "support",
-]
 
-
-def build_dm_tools(config_getter: Callable) -> list[Callable]:
-    """Return all document-mining tool functions, wired to config_getter."""
+def build_rag_ingest_tools(config_getter: Callable) -> list[Callable]:
+    """Return all org-level document ingestion tool functions wired to config_getter."""
 
     def _init_vertexai(corpus_or_file: str) -> None:
         import vertexai
@@ -98,8 +109,6 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
             return {"status": "error", "message": "No content provided for analysis."}
 
         try:
-            from document_analysis import analyze_document
-
             result = analyze_document(
                 content_sample.encode("utf-8", errors="ignore"),
                 filename or "document.txt",
@@ -117,9 +126,7 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
                 if d.strip()
             ]
 
-            summary_lines = [
-                f"**Document type:** {doc_type} ({doc_category})",
-            ]
+            summary_lines = [f"**Document type:** {doc_type} ({doc_category})"]
             if topic:
                 summary_lines.append(f"**Topic:** {topic}")
             if keywords:
@@ -160,6 +167,7 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
         keywords: str = "",
         accessibility_scope: str = "organization",
         departments: str = "",
+        owner_user_id: str = "",
         tool_context=None,
     ) -> dict:
         """Upload a document to the knowledge base with full metadata tagging.
@@ -167,14 +175,11 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
         IMPORTANT — follow this workflow in order:
           1. Call analyze_document_content() first.
           2. Present analysis to the user; ask them to confirm:
-             a. Scope: "organization" (whole company) or "department" (restricted).
+             a. Scope: "organization" (whole company), "department" (restricted),
+                or "personal" (only the uploading user can retrieve it).
              b. If "department": which departments? (sales, engineering, hr, finance,
                 legal, marketing, operations, executive, product, support)
           3. Call this tool with the confirmed values.
-
-        The source_agent tag records which agent or system originated the upload
-        (e.g. "crm_agent", "web_scraper_agent", "user") so documents can be
-        filtered by their origin later.
 
         Args:
             display_name: Friendly document name shown in search results.
@@ -185,8 +190,10 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
             doc_type: Fine-grained type (from analysis or user override).
             topic: 2-4 word topic summary.
             keywords: Comma-separated keywords.
-            accessibility_scope: "organization" (default) or "department".
+            accessibility_scope: "organization" (default), "department", or "personal".
             departments: Comma-separated dept names when scope is "department".
+            owner_user_id: User ID that owns this file when scope is "personal".
+                           Falls back to the session user_id if not provided.
 
         Returns:
             dict with: status, rag_file_name, accessibility_scope, departments,
@@ -212,10 +219,14 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
                 "message": "Provide either extracted_text (inline) or source (Drive URL / GCS URI).",
             }
 
-        # Normalise scope
         scope = accessibility_scope.lower().strip()
-        if scope not in ("organization", "department"):
+        if scope not in ("organization", "department", "personal"):
             scope = "organization"
+
+        # For personal scope: resolve the file owner
+        personal_owner = ""
+        if scope == "personal":
+            personal_owner = (owner_user_id or "").strip() or user_id
 
         dept_list: list[str] = []
         if scope == "department" and departments:
@@ -236,6 +247,8 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
             "uploaded_by": user_id[:200],
             "uploaded_at": now_iso,
         }
+        if personal_owner:
+            user_metadata["owner_user_id"] = personal_owner[:200]
         if doc_category:
             user_metadata["doc_category"] = doc_category[:100]
         if doc_type:
@@ -254,15 +267,12 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
 
             _init_vertexai(corpus)
 
-            # ---- Path A: inline extracted text ----
             if extracted_text and extracted_text.strip():
                 chosen_name = display_name
-                ext = os.path.splitext(chosen_name)[1].lower()
-                if ext not in _RAG_EXTS:
-                    chosen_name += ".txt"
-                    ext = ".txt"
-
-                with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                # Always write extracted text as .txt — using the original extension
+                # (e.g. .pdf) would make Vertex AI RAG expect valid binary PDF format
+                # and reject plain UTF-8 text with "PDF was invalid".
+                with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
                     tmp.write(extracted_text.encode("utf-8"))
                     tmp_path = tmp.name
 
@@ -278,18 +288,19 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
                     os.unlink(tmp_path)
 
                 rag_file_name = rag_file.name
-                _register(rag_file_name, scope, dept_list, scope_registry_uri)
+                _register(rag_file_name, scope, dept_list, scope_registry_uri,
+                          personal_owner=personal_owner)
                 logger.info(
-                    "dm_tools: uploaded %s scope=%s depts=%s agent=%s user=%s",
+                    "rag_ingest: uploaded %s scope=%s depts=%s agent=%s user=%s",
                     rag_file_name, scope, dept_list, source_agent, user_id,
                 )
                 return _success_response(
                     display_name, rag_file_name,
                     rag_file.display_name, scope, dept_list,
                     doc_category, doc_type, user_metadata,
+                    personal_owner=personal_owner,
                 )
 
-            # ---- Path B: Drive URL or GCS URI ----
             is_gcs = source.startswith("gs://")
             is_drive = bool(_DRIVE_URL_RE.match(source))
             if not (is_gcs or is_drive):
@@ -319,10 +330,11 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
                 }
 
             for fn in new_names:
-                _register(fn, scope, dept_list, scope_registry_uri)
+                _register(fn, scope, dept_list, scope_registry_uri,
+                          personal_owner=personal_owner)
 
             logger.info(
-                "dm_tools: imported %d file(s) from %s scope=%s depts=%s agent=%s user=%s",
+                "rag_ingest: imported %d file(s) from %s scope=%s depts=%s agent=%s user=%s",
                 len(new_names), source, scope, dept_list, source_agent, user_id,
             )
             return {
@@ -331,20 +343,22 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
                 "rag_file_names": new_names,
                 "accessibility_scope": scope,
                 "departments": dept_list if scope == "department" else [],
+                "owner_user_id": personal_owner if scope == "personal" else "",
                 "tags_applied": user_metadata,
                 "message": (
                     f"Imported {len(new_names)} document(s) from source.\n"
                     f"Accessibility: {scope.upper()}"
                     + (f" → {', '.join(dept_list)}" if dept_list else "")
+                    + (f" (owner: {personal_owner})" if personal_owner else "")
                 ),
             }
 
         except TypeError:
-            # Older SDK version without metadata kwarg — retry without it
-            logger.warning("dm_tools: SDK lacks metadata kwarg — uploading without tags")
+            logger.warning("rag_ingest: SDK lacks metadata kwarg — uploading without tags")
             return _upload_no_metadata(
                 extracted_text, display_name, corpus, scope,
                 dept_list, scope_registry_uri, user_metadata, _init_vertexai,
+                personal_owner=personal_owner,
             )
 
         except Exception as exc:
@@ -370,8 +384,6 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
 
         Returns:
             dict with: documents (list), count.
-            Each document has: name, display_name, accessibility_scope,
-            departments, create_time.
         """
         cfg = config_getter().tools.get("rag")
         if not cfg or not cfg.enabled:
@@ -383,13 +395,11 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
             return {"status": "error", "message": "RAG corpus is not configured."}
 
         try:
-            from scope_registry import get_all_registry
             from vertexai.preview import rag
 
             _init_vertexai(corpus)
             registry = get_all_registry(scope_registry_uri)
 
-            # Build fast lookup: rag_file_name → (scope, dept_list)
             file_scope: dict[str, str] = {}
             file_depts: dict[str, list[str]] = {}
 
@@ -413,14 +423,13 @@ def build_dm_tools(config_getter: Callable) -> list[Callable]:
                 if filter_department and filter_department.lower() not in depts:
                     continue
 
-                entry = {
+                results.append({
                     "name": f.name,
                     "display_name": f.display_name,
                     "accessibility_scope": scope,
                     "departments": depts,
                     "create_time": str(getattr(f, "create_time", "")),
-                }
-                results.append(entry)
+                })
 
             return {"documents": results, "count": len(results)}
 
@@ -444,12 +453,13 @@ def _register(
     scope: str,
     dept_list: list[str],
     scope_registry_uri: str,
+    personal_owner: str = "",
 ) -> None:
     if scope == "organization":
-        from scope_registry import register_org_file
         register_org_file(file_name, scope_registry_uri)
+    elif scope == "personal" and personal_owner:
+        register_personal_file(personal_owner, file_name, file_name.split("/")[-1], scope_registry_uri)
     else:
-        from scope_registry import register_dept_files
         register_dept_files(file_name, dept_list, scope_registry_uri)
 
 
@@ -462,6 +472,7 @@ def _success_response(
     doc_category: str,
     doc_type: str,
     tags: dict,
+    personal_owner: str = "",
 ) -> dict:
     return {
         "status": "success",
@@ -469,11 +480,13 @@ def _success_response(
         "display_name": rag_display,
         "accessibility_scope": scope,
         "departments": dept_list if scope == "department" else [],
+        "owner_user_id": personal_owner if scope == "personal" else "",
         "tags_applied": tags,
         "message": (
             f"'{display_name}' has been uploaded to the knowledge base.\n"
             f"Accessibility: {scope.upper()}"
             + (f" → {', '.join(dept_list)}" if dept_list else "")
+            + (f" (owner: {personal_owner})" if personal_owner else "")
             + f"\nCategory: {doc_category or 'unclassified'} | Type: {doc_type or 'other'}"
         ),
     }
@@ -488,16 +501,14 @@ def _upload_no_metadata(
     scope_registry_uri: str,
     tags: dict,
     init_fn,
+    personal_owner: str = "",
 ) -> dict:
-    """Fallback upload without metadata kwarg (older SDK)."""
+    """Fallback upload without metadata kwarg (older Vertex AI SDK)."""
     try:
-        import re
-        import tempfile
         from vertexai.preview import rag
 
         init_fn(corpus)
-        ext = os.path.splitext(display_name)[1].lower() or ".txt"
-        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
             tmp.write((extracted_text or "").encode("utf-8"))
             tmp_path = tmp.name
         try:
@@ -509,21 +520,18 @@ def _upload_no_metadata(
         finally:
             os.unlink(tmp_path)
 
-        _register(rag_file.name, scope, dept_list, scope_registry_uri)
+        _register(rag_file.name, scope, dept_list, scope_registry_uri,
+                  personal_owner=personal_owner)
         return {
             "status": "success",
             "rag_file_name": rag_file.name,
             "display_name": rag_file.display_name,
             "accessibility_scope": scope,
             "departments": dept_list if scope == "department" else [],
+            "owner_user_id": personal_owner if scope == "personal" else "",
             "tags_applied": {},
             "message": f"'{display_name}' uploaded (metadata tags not applied — SDK version limitation).",
         }
     except Exception as exc:
         logger.error("_upload_no_metadata fallback error: %s", exc)
         return {"status": "error", "message": str(exc)}
-
-
-def get_tools() -> list[Callable]:
-    from config import get_config
-    return build_dm_tools(config_getter=get_config)

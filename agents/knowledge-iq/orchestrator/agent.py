@@ -17,8 +17,13 @@ import google.auth
 from dotenv import load_dotenv
 from google.adk.agents import Agent
 
-from prompts import build_instruction
-from tools.a2a.a2a_tools import get_tools as get_a2a_tools
+try:
+    from .config import get_config       # adk web: loaded as package
+    from .prompts import build_instruction
+except ImportError:
+    from config import get_config        # Agent Engine: flat bundle
+    from prompts import build_instruction
+from tools.a2a.a2a_tools import build_a2a_tools
 
 load_dotenv()
 
@@ -27,14 +32,11 @@ os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 
-# a2a_tools.get_tools() resolves `from config import get_config` to this
-# agent's own config.py (orchestrator/ is on the Python path at runtime),
-# so it reads the orchestrator's sub_agents section automatically.
 root_agent = Agent(
     model="gemini-2.5-flash",
     name="knowledge_iq_orchestrator",
     instruction=build_instruction,
-    tools=get_a2a_tools(),
+    tools=build_a2a_tools(config_getter=get_config),
 )
 
 app = root_agent

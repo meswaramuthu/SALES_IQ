@@ -1,18 +1,21 @@
 {
-  "name": "Knowledge IQ",
+  "name": "laabu-kiq-enterprise-search",
+  "display_name": "Laabu Enterprise Search",
   "version": "1.0.0",
-  "description": "Enterprise knowledge query agent providing unified search and retrieval across Jira, Confluence, GitHub, SharePoint, OneDrive, Outlook, Notion, and CRM data sources. Supports per-user RAG document uploads and semantic search.",
-  "gcs_card_path": "gs://stratova-platform/agents/knowledge-iq/agent-card/agent-card.json",
+  "description": "Enterprise knowledge search and retrieval across all organisational data sources: RAG corpus, Gmail, Google Drive, Jira, Confluence, GitHub, SharePoint, OneDrive, Outlook, and Notion. Surfaces answers grounded in company data with source citations.",
+  "gcs_card_path": "gs://stratova-platform/agents/knowledge-iq/enterprise-search/agent-card.json",
   "capabilities": {
-    "streaming": true
+    "streaming": true,
+    "semantic_search": true,
+    "multi_source_retrieval": true
   },
   "skills": [
     {
       "id": "rag_search",
       "name": "Knowledge Base Search",
-      "description": "Semantic search across user-uploaded documents in the per-user RAG corpus.",
-      "input": "Natural language question or search terms",
-      "output": "Ranked document chunks with source, text, and relevance score",
+      "description": "Semantic search across organisation-uploaded documents in the RAG corpus. Returns ranked excerpts with source file, relevance score, and direct citations.",
+      "input": "Natural language question or keyword query",
+      "output": "Ranked document chunks with source, text excerpt, and relevance score",
       "examples": [
         "Find our refund policy",
         "Search for the Q3 product roadmap",
@@ -22,9 +25,9 @@
     {
       "id": "gmail_search",
       "name": "Gmail Search",
-      "description": "Search and retrieve emails from the connected Google Workspace Gmail account.",
-      "input": "Natural language email query (sender, subject, date range, keywords)",
-      "output": "Matching email threads with subject, sender, date, and body snippet",
+      "description": "Search and retrieve emails from the connected Google Workspace Gmail account by sender, subject, date range, or keywords.",
+      "input": "Natural language email query",
+      "output": "Matching email threads with subject, sender, date, and body excerpt",
       "examples": [
         "Find emails from alice@acme.com this week",
         "Show unread emails about the product launch",
@@ -36,7 +39,7 @@
       "name": "Google Drive Search",
       "description": "Search and retrieve documents, spreadsheets, and presentations from Google Drive.",
       "input": "Natural language file query or keyword",
-      "output": "Matching files with name, type, owner, and last modified date",
+      "output": "Matching files with name, type, owner, last modified date, and content excerpt",
       "examples": [
         "Find the sales deck from last quarter",
         "Get the content of the pricing spreadsheet",
@@ -45,10 +48,10 @@
     },
     {
       "id": "jira_search",
-      "name": "Jira Search",
-      "description": "Query Jira issues using JQL or natural language across connected Jira projects.",
+      "name": "Jira Issue Search",
+      "description": "Query Jira issues using JQL or natural language across all connected Jira projects.",
       "input": "JQL string or natural language description of issues to find",
-      "output": "List of matching issues with key, summary, status, assignee, and priority",
+      "output": "Matching issues with key, summary, status, assignee, and priority",
       "examples": [
         "Find open bugs assigned to the platform team",
         "Show all Jira tickets in progress for project KIQ",
@@ -57,22 +60,22 @@
     },
     {
       "id": "github_search",
-      "name": "GitHub Search",
+      "name": "GitHub Code & PR Search",
       "description": "Search repositories, commits, pull requests, and issues in the connected GitHub organisation.",
       "input": "Natural language query about code, commits, or pull requests",
       "output": "Matching repositories, commits, PRs, or issues with metadata",
       "examples": [
         "List open pull requests in the stratova-gcp repo",
-        "Find recent commits mentioning 'session service'",
+        "Find recent commits mentioning session service",
         "What issues are open in the admin-iq repository?"
       ]
     },
     {
       "id": "confluence_search",
-      "name": "Confluence Search",
-      "description": "Search pages and spaces in the connected Atlassian Confluence instance.",
+      "name": "Confluence Page Search",
+      "description": "Search pages and spaces in the connected Atlassian Confluence instance using CQL or natural language.",
       "input": "Natural language query or CQL expression",
-      "output": "Matching pages with title, space, last updated, and content excerpt",
+      "output": "Matching pages with title, space, last updated date, and content excerpt",
       "examples": [
         "Find the engineering architecture decision records",
         "Search Confluence for the incident response runbook",
@@ -81,70 +84,22 @@
     },
     {
       "id": "sharepoint_search",
-      "name": "SharePoint Search",
+      "name": "SharePoint Document Search",
       "description": "Search documents and files in connected Microsoft SharePoint sites.",
       "input": "Natural language document query",
       "output": "Matching SharePoint documents with name, site, path, and modified date",
       "examples": [
         "Find the HR policy documents on SharePoint",
-        "Search SharePoint for the vendor contract templates",
+        "Search SharePoint for vendor contract templates",
         "Get the latest compliance checklist from SharePoint"
       ]
     },
     {
-      "id": "gemini_connectors",
-      "name": "Gemini Enterprise Connectors",
-      "description": "Search across all Gemini Enterprise connected data sources (email, calendar, Drive, third-party SaaS) using the Gemini Connector API.",
-      "input": "Natural language query",
-      "output": "Ranked results from all connected enterprise sources",
-      "examples": [
-        "What was discussed about Acme Corp across all sources?",
-        "Find everything related to the Q4 planning cycle",
-        "Summarise all activity for deal HS-1234"
-      ]
-    },
-    {
-      "id": "crm_operations",
-      "name": "CRM Operations",
-      "description": "Read and manage HubSpot CRM records — contacts, companies, deals, and activities — via the CRM Agent sub-agent.",
-      "input": "Natural language CRM query or instruction",
-      "output": "CRM records with relevant fields and relationship context",
-      "examples": [
-        "Find the HubSpot deal for Acme Corp",
-        "What is the pipeline stage for deal HS-9821?",
-        "List all contacts at vantageclinical.com"
-      ]
-    },
-    {
-      "id": "company_enrichment",
-      "name": "Company Enrichment",
-      "description": "Enrich company profiles with firmographic data (headcount, industry, technology stack, funding) using the Enrichment Agent.",
-      "input": "Company domain or email address",
-      "output": "Enriched company profile with headcount, industry, HQ location, and tech stack",
-      "examples": [
-        "Enrich company for maya@vantageclinical.com",
-        "Get firmographic data for acme.com",
-        "What is the headcount and industry for clearbit.com?"
-      ]
-    },
-    {
-      "id": "web_scraper",
-      "name": "Web Scraper",
-      "description": "Scrape and extract structured content from any public URL using the Web Scraper Agent.",
-      "input": "URL and optional extraction instructions",
-      "output": "Extracted page content, structured data, or summarised text",
-      "examples": [
-        "Scrape the pricing page at acme.com/pricing and summarise the tiers",
-        "Extract the team members listed on vantageclinical.com/about",
-        "What does the careers page at competitor.com say about their tech stack?"
-      ]
-    },
-    {
       "id": "onedrive_search",
-      "name": "OneDrive Search",
+      "name": "OneDrive File Search",
       "description": "Search and retrieve files stored in Microsoft OneDrive for the connected account.",
       "input": "File name or keyword query",
-      "output": "Matching files with name, type, and downloadable text content",
+      "output": "Matching files with name, type, and text content",
       "examples": [
         "Find the Q4 budget spreadsheet in OneDrive",
         "List all files in my OneDrive root folder",
@@ -154,7 +109,7 @@
     {
       "id": "outlook_search",
       "name": "Outlook Mail Search",
-      "description": "Search and retrieve emails from the connected Microsoft Outlook account using keyword query language.",
+      "description": "Search and retrieve emails from the connected Microsoft Outlook account.",
       "input": "Natural language email query (sender, subject, date, keywords)",
       "output": "Matching emails with subject, sender, date, and full body text",
       "examples": [
@@ -165,7 +120,7 @@
     },
     {
       "id": "notion_search",
-      "name": "Notion Search",
+      "name": "Notion Workspace Search",
       "description": "Search pages and query databases in the connected Notion workspace.",
       "input": "Natural language query or database filter",
       "output": "Matching pages with full text content, or database records with field values",
@@ -173,6 +128,18 @@
         "Search Notion for our product roadmap",
         "List all databases in our Notion workspace",
         "Query the CRM database filtered by Status = Active"
+      ]
+    },
+    {
+      "id": "gemini_connectors",
+      "name": "Gemini Enterprise Connectors",
+      "description": "Search across all Gemini Enterprise connected data sources using the Gemini Connector API for a unified enterprise knowledge experience.",
+      "input": "Natural language query",
+      "output": "Ranked results from all connected enterprise sources",
+      "examples": [
+        "What was discussed about Acme Corp across all sources?",
+        "Find everything related to the Q4 planning cycle",
+        "Summarise all activity for deal HS-1234"
       ]
     }
   ]

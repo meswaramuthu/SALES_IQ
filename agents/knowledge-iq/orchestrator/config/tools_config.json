@@ -7,13 +7,13 @@
     "document_mining_agent": {
       "enabled": true,
       "resource_name": "env:DOCUMENT_MINING_AGENT_RESOURCE_NAME",
-      "agent_card_url": "env:DOCUMENT_MINING_AGENT_CARD_URL",
-      "description": "Handles all document upload requests: analyzes content, confirms accessibility scope (organization vs department) with the user, and ingests documents into the knowledge base with full metadata tagging (source agent, category, type, keywords, departments)."
+      "agent_card_url": "gs://stratova-platform/agents/knowledge-iq/document-intelligence/agent-card.json",
+      "description": "Handles all document upload requests: analyses content, confirms accessibility scope (organization, department, or personal) with the user, and ingests documents into the knowledge base with full metadata tagging (source agent, category, type, keywords, departments, owner)."
     },
     "knowledge_search_agent": {
       "enabled": true,
       "resource_name": "env:KNOWLEDGE_SEARCH_AGENT_RESOURCE_NAME",
-      "agent_card_url": "env:KNOWLEDGE_SEARCH_AGENT_CARD_URL",
+      "agent_card_url": "gs://stratova-platform/agents/knowledge-iq/enterprise-search/agent-card.json",
       "description": "Searches and retrieves information from the organisational knowledge base across all connected data sources (RAG corpus, SharePoint, GitHub, Confluence, Jira, Gmail, Notion, OneDrive)."
     }
   }

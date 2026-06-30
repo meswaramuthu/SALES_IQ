@@ -32,7 +32,7 @@ NAME ?= "Knowledge IQ Corpus"
 SEED_GCS ?=
 SEED_URL ?=
 setup-corpus:
-	uv run python scripts/setup_corpus.py \
+	uv run python deploy/scripts/setup_corpus.py \
 		--name $(NAME) \
 		$(if $(SEED_GCS),--seed-gcs $(SEED_GCS),) \
 		$(if $(SEED_URL),--seed-url $(SEED_URL),)
@@ -40,29 +40,29 @@ setup-corpus:
 # ── One-go deploy / teardown ─────────────────────────────────────────────────
 # Full deploy: infrastructure + corpus + config upload + agent engine + Gemini Enterprise
 deploy-full:
-	uv run python deployment/deploy_full.py
+	uv run python deploy/deploy_full.py
 
 # Skip Gemini Enterprise (Agent Engine only)
 deploy-agent-only:
-	uv run python deployment/deploy_full.py --skip-gemini-enterprise
+	uv run python deploy/deploy_full.py --skip-gemini-enterprise
 
 # Complete teardown: agent engine + corpus + GCS config objects
 delete-all:
-	uv run python deployment/deploy_full.py --delete --delete-corpus --delete-gcs-config
+	uv run python deploy/deploy_full.py --delete --delete-corpus --delete-gcs-config
 
 # Delete agent engine only (keep corpus and GCS config)
 delete-agent:
-	uv run python deployment/deploy_full.py --delete
+	uv run python deploy/deploy_full.py --delete
 
 # ── Individual steps ─────────────────────────────────────────────────────────
 deploy:
-	uv run python deployment/deploy.py
+	uv run python deploy/deploy.py
 
 upload-config:
-	uv run python scripts/upload_config.py config/tools_config.json
+	uv run python deploy/scripts/upload_config.py config/tools_config.json
 
 upload-prompt:
-	uv run python scripts/upload_prompt.py config/prompt.txt
+	uv run python deploy/scripts/upload_prompt.py config/prompt.txt
 
 # Validate and configure a data connector, then upload updated config to GCS.
 # CONNECTOR: sharepoint | github | jira | confluence | gmail | gdrive | hubspot | apollo
@@ -74,4 +74,4 @@ upload-prompt:
 CONNECTOR ?=
 ARGS ?=
 setup-connector:
-	uv run python scripts/setup_connector.py $(CONNECTOR) $(ARGS)
+	uv run python deploy/scripts/setup_connector.py $(CONNECTOR) $(ARGS)

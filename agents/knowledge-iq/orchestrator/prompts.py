@@ -5,7 +5,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from config import AgentConfig, get_config
+try:
+    from .config import AgentConfig, get_config
+except ImportError:
+    from config import AgentConfig, get_config
 
 logger = logging.getLogger(__name__)
 
