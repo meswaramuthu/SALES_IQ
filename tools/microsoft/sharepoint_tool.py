@@ -10,9 +10,7 @@ Required credentials (set in tools_config.json or env vars):
 
 Azure AD app registration requirements:
   Permission type : Application (not Delegated)
-  Permissions     : Sites.ReadWrite.All, Files.ReadWrite.All
-                    (Previously Sites.Read.All, Files.Read.All — update in Azure AD
-                     app registration to enable write operations.)
+  Permissions     : Sites.Read.All, Files.Read.All
 
 In tools_config.json reference secrets as:
   "client_secret": "env:SHAREPOINT_CLIENT_SECRET"
@@ -26,27 +24,14 @@ Tools exported:
     list_sharepoint_drives          - list document libraries in a site
     list_sharepoint_drive_items     - list files and folders in a library or subfolder
 
-  FILES (READ)
+  FILES
     search_sharepoint_files         - search files by name or content keyword
     get_sharepoint_file_content     - download and return text content of a file
     get_sharepoint_file_metadata    - get file metadata (size, type, author, dates)
 
-  FILES (WRITE)
-    create_sharepoint_folder        - create a new folder in a document library
-    upload_sharepoint_file          - upload a text file to a document library
-    update_sharepoint_file          - replace content of an existing file
-    delete_sharepoint_file          - permanently delete a file or folder
-    move_sharepoint_file            - move a file to a different location
-    copy_sharepoint_file            - copy a file to a destination folder
-
-  LISTS (READ)
+  LISTS
     list_sharepoint_lists           - list SharePoint lists in a site
     get_sharepoint_list_items       - query list items with optional OData filter
-
-  LISTS (WRITE)
-    create_sharepoint_list_item     - create a new item in a SharePoint list
-    update_sharepoint_list_item     - update fields of an existing list item
-    delete_sharepoint_list_item     - delete a list item
 
   SEARCH
     search_sharepoint               - full-text search across all SharePoint content
@@ -130,45 +115,6 @@ def _graph_get(sess, path: str, params: dict | None = None) -> dict:
     resp = sess.get(f"{_GRAPH_BASE}{path}", params=params, timeout=30)
     resp.raise_for_status()
     return resp.json()
-
-
-def _graph_post(sess, path: str, json_body: dict | None = None) -> dict:
-    resp = sess.post(
-        f"{_GRAPH_BASE}{path}",
-        json=json_body,
-        headers={"Content-Type": "application/json"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json() if resp.content else {}
-
-
-def _graph_patch(sess, path: str, json_body: dict | None = None) -> dict:
-    resp = sess.patch(
-        f"{_GRAPH_BASE}{path}",
-        json=json_body,
-        headers={"Content-Type": "application/json"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json() if resp.content else {}
-
-
-def _graph_put_bytes(sess, path: str, data: bytes, content_type: str = "application/octet-stream") -> dict:
-    resp = sess.put(
-        f"{_GRAPH_BASE}{path}",
-        data=data,
-        headers={"Content-Type": content_type},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json() if resp.content else {}
-
-
-def _graph_delete(sess, path: str) -> bool:
-    resp = sess.delete(f"{_GRAPH_BASE}{path}", timeout=30)
-    resp.raise_for_status()
-    return True
 
 
 def _cfg_vals(cfg: dict) -> tuple[str, str, str, str, str]:
@@ -899,390 +845,6 @@ def get_tools() -> list[Callable]:
             logger.error("get_sharepoint_page error: %s", exc)
             return {"status": "error", "message": str(exc)}
 
-    # ── FILES (WRITE) ─────────────────────────────────────────────────────────
-
-    def create_sharepoint_folder(
-        drive_id: str,
-        folder_name: str,
-        parent_folder_path: str = "",
-    ) -> dict:
-        """Create a new folder in a SharePoint document library.
-
-        Args:
-            drive_id: Drive ID from list_sharepoint_drives.
-            folder_name: Name for the new folder.
-            parent_folder_path: Relative path inside the drive for the parent
-                                folder (e.g. 'Engineering/Specs').
-                                Leave blank to create in the drive root.
-
-        Returns:
-            dict with folder id, name, web_url, and status.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, _, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-
-            if parent_folder_path:
-                path = f"/drives/{drive_id}/root:/{parent_folder_path}:/children"
-            else:
-                path = f"/drives/{drive_id}/root/children"
-
-            body = {
-                "name": folder_name,
-                "folder": {},
-                "@microsoft.graph.conflictBehavior": "rename",
-            }
-            result = _graph_post(sess, path, json_body=body)
-            return {
-                "id": result.get("id", ""),
-                "name": result.get("name", folder_name),
-                "web_url": result.get("webUrl", ""),
-                "drive_id": drive_id,
-                "status": "created",
-            }
-        except Exception as exc:
-            logger.error("create_sharepoint_folder error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def upload_sharepoint_file(
-        drive_id: str,
-        file_name: str,
-        content: str,
-        folder_path: str = "",
-    ) -> dict:
-        """Upload a new text file to a SharePoint document library.
-
-        Args:
-            drive_id: Drive ID from list_sharepoint_drives.
-            file_name: File name including extension (e.g. 'report.md', 'data.csv').
-            content: File content as a UTF-8 string.
-            folder_path: Destination folder path inside the drive
-                         (e.g. 'Engineering/Reports'). Leave blank for drive root.
-
-        Returns:
-            dict with file id, name, drive_id, web_url, and status.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, _, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-
-            if folder_path:
-                path = f"/drives/{drive_id}/root:/{folder_path}/{file_name}:/content"
-            else:
-                path = f"/drives/{drive_id}/root:/{file_name}:/content"
-
-            result = _graph_put_bytes(sess, path, data=content.encode("utf-8"), content_type="text/plain")
-            return {
-                "id": result.get("id", ""),
-                "name": result.get("name", file_name),
-                "drive_id": drive_id,
-                "web_url": result.get("webUrl", ""),
-                "status": "uploaded",
-            }
-        except Exception as exc:
-            logger.error("upload_sharepoint_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def update_sharepoint_file(drive_id: str, item_id: str, content: str) -> dict:
-        """Replace the content of an existing SharePoint file.
-
-        Args:
-            drive_id: Drive ID containing the file.
-            item_id: Item ID of the file to update.
-            content: New file content as a UTF-8 string.
-
-        Returns:
-            dict with file id, name, web_url, and status.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, _, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-
-            result = _graph_put_bytes(
-                sess,
-                f"/drives/{drive_id}/items/{item_id}/content",
-                data=content.encode("utf-8"),
-                content_type="text/plain",
-            )
-            return {
-                "id": result.get("id", item_id),
-                "name": result.get("name", ""),
-                "web_url": result.get("webUrl", ""),
-                "status": "updated",
-            }
-        except Exception as exc:
-            logger.error("update_sharepoint_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def delete_sharepoint_file(drive_id: str, item_id: str) -> dict:
-        """Permanently delete a file or folder from a SharePoint document library.
-
-        Args:
-            drive_id: Drive ID containing the item.
-            item_id: Item ID of the file or folder to delete.
-
-        Returns:
-            dict confirming deletion.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, _, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-            _graph_delete(sess, f"/drives/{drive_id}/items/{item_id}")
-            return {"item_id": item_id, "drive_id": drive_id, "status": "deleted"}
-        except Exception as exc:
-            logger.error("delete_sharepoint_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def move_sharepoint_file(
-        drive_id: str,
-        item_id: str,
-        destination_drive_id: str,
-        destination_folder_path: str,
-    ) -> dict:
-        """Move a file to a different location within SharePoint.
-
-        Args:
-            drive_id: Drive ID of the source file.
-            item_id: Item ID of the file to move.
-            destination_drive_id: Drive ID of the destination (can be same drive).
-            destination_folder_path: Folder path in the destination drive
-                                     (e.g. 'Archive/2026'). Use '' for root.
-
-        Returns:
-            dict with updated item id, name, web_url, and status.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, _, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-
-            if destination_folder_path:
-                dest_meta = _graph_get(
-                    sess,
-                    f"/drives/{destination_drive_id}/root:/{destination_folder_path}",
-                )
-            else:
-                dest_meta = _graph_get(sess, f"/drives/{destination_drive_id}/root")
-            dest_id = dest_meta.get("id", "")
-
-            result = _graph_patch(
-                sess,
-                f"/drives/{drive_id}/items/{item_id}",
-                json_body={"parentReference": {"driveId": destination_drive_id, "id": dest_id}},
-            )
-            return {
-                "id": result.get("id", item_id),
-                "name": result.get("name", ""),
-                "web_url": result.get("webUrl", ""),
-                "status": "moved",
-            }
-        except Exception as exc:
-            logger.error("move_sharepoint_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def copy_sharepoint_file(
-        drive_id: str,
-        item_id: str,
-        destination_drive_id: str,
-        destination_folder_path: str,
-        new_name: str = "",
-    ) -> dict:
-        """Copy a SharePoint file to a destination folder.
-
-        Graph API copies are asynchronous — this tool initiates the copy
-        and returns a monitor URL. The copy completes within seconds.
-
-        Args:
-            drive_id: Drive ID of the source file.
-            item_id: Item ID of the file to copy.
-            destination_drive_id: Drive ID of the destination.
-            destination_folder_path: Folder path in the destination drive. Use '' for root.
-            new_name: New name for the copy. Keeps original name if blank.
-
-        Returns:
-            dict with status and monitor_url to check completion.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, _, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-
-            if destination_folder_path:
-                dest_meta = _graph_get(
-                    sess,
-                    f"/drives/{destination_drive_id}/root:/{destination_folder_path}",
-                )
-            else:
-                dest_meta = _graph_get(sess, f"/drives/{destination_drive_id}/root")
-            dest_id = dest_meta.get("id", "")
-
-            body: dict = {"parentReference": {"driveId": destination_drive_id, "id": dest_id}}
-            if new_name:
-                body["name"] = new_name
-
-            resp = sess.post(
-                f"{_GRAPH_BASE}/drives/{drive_id}/items/{item_id}/copy",
-                json=body,
-                timeout=30,
-            )
-            resp.raise_for_status()
-            monitor_url = resp.headers.get("Location", "")
-            return {
-                "item_id": item_id,
-                "destination_folder": destination_folder_path,
-                "monitor_url": monitor_url,
-                "status": "copy_initiated",
-            }
-        except Exception as exc:
-            logger.error("copy_sharepoint_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    # ── LISTS (WRITE) ─────────────────────────────────────────────────────────
-
-    def create_sharepoint_list_item(
-        list_id: str,
-        fields: dict,
-        site_id: str = "",
-    ) -> dict:
-        """Create a new item in a SharePoint List.
-
-        Args:
-            list_id: SharePoint List ID from list_sharepoint_lists.
-            fields: Dictionary of field name → value pairs for the new item.
-                    Example: {"Title": "New task", "Status": "Active", "Priority": "High"}
-                    Field names must match the internal names of the list's columns.
-            site_id: Site ID or URL. Uses default site from config if blank.
-
-        Returns:
-            dict with new item id, fields, and status.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, default_url, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-            sid = _resolve_site_id(sess, site_id, default_url)
-
-            result = _graph_post(
-                sess,
-                f"/sites/{sid}/lists/{list_id}/items",
-                json_body={"fields": fields},
-            )
-            return {
-                "id": result.get("id", ""),
-                "fields": result.get("fields", fields),
-                "list_id": list_id,
-                "site_id": sid,
-                "status": "created",
-            }
-        except Exception as exc:
-            logger.error("create_sharepoint_list_item error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def update_sharepoint_list_item(
-        list_id: str,
-        item_id: str,
-        fields: dict,
-        site_id: str = "",
-    ) -> dict:
-        """Update fields of an existing SharePoint List item.
-
-        Only the fields you provide are changed; omitted fields stay as-is.
-
-        Args:
-            list_id: SharePoint List ID.
-            item_id: List item ID to update (from get_sharepoint_list_items).
-            fields: Dictionary of field name → new value pairs.
-                    Example: {"Status": "Completed", "AssignedTo": "alice@company.com"}
-            site_id: Site ID or URL. Uses default site from config if blank.
-
-        Returns:
-            dict with updated item id and status.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, default_url, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-            sid = _resolve_site_id(sess, site_id, default_url)
-
-            _graph_patch(
-                sess,
-                f"/sites/{sid}/lists/{list_id}/items/{item_id}/fields",
-                json_body=fields,
-            )
-            return {
-                "id": item_id,
-                "list_id": list_id,
-                "site_id": sid,
-                "updated_fields": list(fields.keys()),
-                "status": "updated",
-            }
-        except Exception as exc:
-            logger.error("update_sharepoint_list_item error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def delete_sharepoint_list_item(
-        list_id: str,
-        item_id: str,
-        site_id: str = "",
-    ) -> dict:
-        """Delete an item from a SharePoint List.
-
-        Args:
-            list_id: SharePoint List ID.
-            item_id: List item ID to delete.
-            site_id: Site ID or URL. Uses default site from config if blank.
-
-        Returns:
-            dict confirming deletion.
-        """
-        cfg = get_config().tools.get("sharepoint")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "SharePoint tool is currently disabled."}
-        try:
-            tenant_id, client_id, client_secret, default_url, _ = _cfg_vals(cfg.config)
-            token = _get_token(tenant_id, client_id, client_secret)
-            sess = _session(token)
-            sid = _resolve_site_id(sess, site_id, default_url)
-
-            _graph_delete(sess, f"/sites/{sid}/lists/{list_id}/items/{item_id}")
-            return {
-                "id": item_id,
-                "list_id": list_id,
-                "site_id": sid,
-                "status": "deleted",
-            }
-        except Exception as exc:
-            logger.error("delete_sharepoint_list_item error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
     return [
         # Sites
         list_sharepoint_sites,
@@ -1290,24 +852,13 @@ def get_tools() -> list[Callable]:
         # Drives (Document Libraries)
         list_sharepoint_drives,
         list_sharepoint_drive_items,
-        # Files (Read)
+        # Files
         search_sharepoint_files,
         get_sharepoint_file_content,
         get_sharepoint_file_metadata,
-        # Files (Write)
-        create_sharepoint_folder,
-        upload_sharepoint_file,
-        update_sharepoint_file,
-        delete_sharepoint_file,
-        move_sharepoint_file,
-        copy_sharepoint_file,
-        # Lists (Read)
+        # Lists
         list_sharepoint_lists,
         get_sharepoint_list_items,
-        # Lists (Write)
-        create_sharepoint_list_item,
-        update_sharepoint_list_item,
-        delete_sharepoint_list_item,
         # Search
         search_sharepoint,
         # Pages

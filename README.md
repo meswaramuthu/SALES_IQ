@@ -45,6 +45,20 @@ Learn    → LAABU  captures every workflow outcome into enterprise memory
 
 ---
 
+## AURA Sales IQ - The Sales Automation Orchestrator
+
+AURA is a specialized multi-agent system within the Laabu workforce designed to act as a force multiplier for the sales team. It manages the entire sales lifecycle by delegating tasks to a team of specialized sub-agents:
+
+- **AURA (Orchestrator):** The main manager agent that interprets user intent and routes tasks to the correct specialist.
+- **discovery_agent (SDR):** Researches target companies and scores them against the Ideal Customer Profile (ICP).
+- **booking_agent (Assistant):** Manages calendars, checks availability, and drafts meeting invites.
+- **proposal_agent (Closer):** Generates structured proposals, pricing quotes, and standard MSAs.
+- **dealdesk_agent (Legal & Finance):** Instantly reviews discount requests against company policy for compliance.
+- **followup_agent (Nurturer):** Drafts personalized email sequences for prospects who have gone cold.
+- **revenue_agent (Analyst):** Analyzes CRM data to forecast revenue, track win rates, and pipeline health.
+
+---
+
 ## Repository Structure
 
 ```

@@ -1,0 +1,37 @@
+{
+  "tools": {
+    "calendar": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "calendar_id": "primary",
+        "timezone": "UTC",
+        "default_meeting_durations": {
+          "discovery": 30,
+          "demo": 45,
+          "qbr": 60,
+          "proposal_review": 60
+        },
+        "create_meet_link": true
+      }
+    },
+    "gmail": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "max_results": 10,
+        "send_enabled": true
+      }
+    },
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "log_meetings": true
+      }
+    }
+  }
+}

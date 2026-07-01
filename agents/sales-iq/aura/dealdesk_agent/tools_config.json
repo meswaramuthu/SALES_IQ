@@ -1,0 +1,43 @@
+{
+  "tools": {
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "pull_deals": true,
+        "update_deal": true,
+        "log_approval_notes": true
+      }
+    },
+    "docusign": {
+      "enabled": true,
+      "config": {
+        "account_id": "env:DOCUSIGN_ACCOUNT_ID",
+        "integration_key": "env:DOCUSIGN_INTEGRATION_KEY",
+        "user_id": "env:DOCUSIGN_USER_ID",
+        "rsa_private_key_gcs_uri": "gs://stratova-platform/creds/docusign-rsa.pem",
+        "base_path": "https://na4.docusign.net/restapi",
+        "contract_template_id": "env:DOCUSIGN_CONTRACT_TEMPLATE_ID",
+        "nda_template_id": "env:DOCUSIGN_NDA_TEMPLATE_ID"
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "config": {
+        "bot_token": "env:SLACK_BOT_TOKEN",
+        "approvals_channel": "#deal-approvals",
+        "dealdesk_channel": "#deal-desk"
+      }
+    },
+    "gdrive": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "contracts_folder_id": "env:GDRIVE_CONTRACTS_FOLDER_ID",
+        "pricing_sheet_id": "env:GDRIVE_PRICING_SHEET_ID"
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "tools": {
+    "gdrive": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "proposals_folder_id": "env:GDRIVE_PROPOSALS_FOLDER_ID",
+        "templates_folder_id": "env:GDRIVE_TEMPLATES_FOLDER_ID"
+      }
+    },
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "update_deal_stage": true,
+        "log_proposal_sent": true
+      }
+    },
+    "docusign": {
+      "enabled": false,
+      "config": {
+        "account_id": "env:DOCUSIGN_ACCOUNT_ID",
+        "integration_key": "env:DOCUSIGN_INTEGRATION_KEY",
+        "user_id": "env:DOCUSIGN_USER_ID",
+        "rsa_private_key_gcs_uri": "gs://stratova-platform/creds/docusign-rsa.pem",
+        "base_path": "https://na4.docusign.net/restapi",
+        "default_template_id": "env:DOCUSIGN_PROPOSAL_TEMPLATE_ID"
+      }
+    },
+    "gmail": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "send_enabled": true
+      }
+    }
+  }
+}

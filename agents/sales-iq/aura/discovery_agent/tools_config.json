@@ -1,0 +1,37 @@
+{
+  "tools": {
+    "apollo": {
+      "enabled": true,
+      "config": {
+        "api_key": "env:APOLLO_API_KEY",
+        "max_results": 25,
+        "default_filters": {
+          "seniority": ["c_suite", "vp", "director", "manager"],
+          "company_size_min": 50,
+          "company_size_max": 5000
+        }
+      }
+    },
+    "clearbit": {
+      "enabled": true,
+      "config": {
+        "api_key": "env:CLEARBIT_API_KEY"
+      }
+    },
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "dedup_check": true
+      }
+    },
+    "linkedin": {
+      "enabled": false,
+      "config": {
+        "client_id": "env:LINKEDIN_CLIENT_ID",
+        "access_token": "env:LINKEDIN_ACCESS_TOKEN"
+      }
+    }
+  }
+}

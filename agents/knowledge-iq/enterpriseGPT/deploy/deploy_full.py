@@ -470,7 +470,6 @@ def phase4_deploy_agent(
     tools_config_uri: str,
     prompt_uri: str,
     tools_config_data: dict | None = None,
-    force_new: bool = False,
 ) -> str:
     """Package source dir and deploy to Vertex AI Agent Engine. Returns resource name."""
     log.info("")
@@ -520,7 +519,7 @@ def phase4_deploy_agent(
     # ── Register flat local modules by value (belt-and-suspenders) ───────────
     import importlib as _importlib
     import cloudpickle as _cloudpickle
-    for _local_mod_name in ["prompts", "config", "file_converter", "agent"]:
+    for _local_mod_name in ["prompts", "config", "agent"]:
         try:
             _mod = _importlib.import_module(_local_mod_name)
             _cloudpickle.register_pickle_by_value(_mod)
@@ -541,7 +540,7 @@ def phase4_deploy_agent(
 
     with _tempfile.TemporaryDirectory(prefix="laabu_bundle_") as _tmp_bundle:
         _bundle = Path(_tmp_bundle)
-        for _fname in ["agent.py", "config.py", "prompts.py", "file_converter.py"]:
+        for _fname in ["agent.py", "config.py", "prompts.py"]:
             _src = _PROJECT_ROOT / _fname
             if _src.exists():
                 shutil.copy2(_src, _bundle / _fname)
@@ -561,14 +560,9 @@ def phase4_deploy_agent(
         )
 
         # Priority: AGENT_ENGINE_ID env var → deployment_state.json agent_engine field.
-        # --force-new bypasses both and always creates a fresh Agent Engine.
-        if force_new:
-            _existing_id = ""
-            log.info("--force-new: creating a brand-new Agent Engine (ignoring any existing ID).")
-        else:
-            _existing_id = os.environ.get("AGENT_ENGINE_ID", "")
-            if not _existing_id and _STATE_FILE.exists():
-                _existing_id = _load_state().get("agent_engine", "")
+        _existing_id = os.environ.get("AGENT_ENGINE_ID", "")
+        if not _existing_id and _STATE_FILE.exists():
+            _existing_id = _load_state().get("agent_engine", "")
 
         log.info("Deploying to Vertex AI Agent Engine (this takes 3–6 min) …")
         if _existing_id:
@@ -967,13 +961,11 @@ def _build_args() -> argparse.Namespace:
     p.add_argument("--grant-access", nargs="*", metavar="MEMBER",
                    help="IAM members to grant access (e.g. user:you@domain.com)")
 
-    # Skip / force flags
+    # Skip flags
     p.add_argument("--skip-infrastructure", action="store_true",
                    help="Skip Phase 1 (API enablement + bucket check) — use when infra already exists")
     p.add_argument("--skip-gemini-enterprise", action="store_true",
                    help="Skip Gemini Enterprise integration (Agent Engine only)")
-    p.add_argument("--force-new", action="store_true",
-                   help="Always create a brand-new Agent Engine (ignore AGENT_ENGINE_ID and state file)")
 
     # Delete mode
     p.add_argument("--delete",  action="store_true",
@@ -1065,7 +1057,6 @@ def main() -> None:
         tools_config_uri=config_uri,
         prompt_uri=prompt_uri,
         tools_config_data=config_data,
-        force_new=args.force_new,
     )
     state["agent_engine"] = resource_name
     _save_state(state)

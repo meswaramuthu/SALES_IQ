@@ -6,5 +6,5 @@
   "rag_location": "us-west1",
   "tools_config_gcs_uri": "gs://stratova-platform/knowledge-iq/tools_config.json",
   "prompt_gcs_uri": "gs://stratova-platform/knowledge-iq/prompt.txt",
-  "agent_engine": "projects/528271267622/locations/us-central1/reasoningEngines/7954287678529208320"
+  "agent_engine": "projects/528271267622/locations/us-central1/reasoningEngines/2775842998401892352"
 }

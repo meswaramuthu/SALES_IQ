@@ -1,0 +1,19 @@
+{
+  "model": "gemini-2.5-flash",
+  "temperature": 0.1,
+  "max_output_tokens": 4096,
+  "top_p": 0.9,
+  "top_k": 40,
+  "enable_tracing": true,
+  "safety_settings": {
+    "harassment": "BLOCK_ONLY_HIGH",
+    "hate_speech": "BLOCK_ONLY_HIGH",
+    "sexually_explicit": "BLOCK_ONLY_HIGH",
+    "dangerous_content": "BLOCK_ONLY_HIGH"
+  },
+  "agent_engine": {
+    "display_name": "AURA Qualification Agent — BANT & MEDDIC Scoring",
+    "description": "Scores prospects using BANT and MEDDIC frameworks, maps decision makers, extracts pain points, and recommends next best actions for deal advancement.",
+    "location": "us-central1"
+  }
+}

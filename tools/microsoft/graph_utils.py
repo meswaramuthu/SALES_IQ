@@ -1,4 +1,4 @@
-"""Shared Microsoft Graph API helpers — token acquisition, session, GET/POST/PATCH/PUT/DELETE.
+"""Shared Microsoft Graph API helpers — token acquisition, session, and GET.
 
 Used by onedrive_tool.py and outlook_tool.py. SharePoint has its own copy
 intentionally to avoid a dependency on this module while it is already deployed.
@@ -42,46 +42,7 @@ def graph_session(token: str):
 
 
 def graph_get(sess, path: str, params: dict | None = None) -> dict:
+    import requests
     resp = sess.get(f"{_GRAPH_BASE}{path}", params=params, timeout=30)
     resp.raise_for_status()
     return resp.json()
-
-
-def graph_post(sess, path: str, json_body: dict | None = None, params: dict | None = None) -> dict:
-    resp = sess.post(
-        f"{_GRAPH_BASE}{path}",
-        json=json_body,
-        params=params,
-        headers={"Content-Type": "application/json"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json() if resp.content else {}
-
-
-def graph_patch(sess, path: str, json_body: dict | None = None) -> dict:
-    resp = sess.patch(
-        f"{_GRAPH_BASE}{path}",
-        json=json_body,
-        headers={"Content-Type": "application/json"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json() if resp.content else {}
-
-
-def graph_put_bytes(sess, path: str, data: bytes, content_type: str = "application/octet-stream") -> dict:
-    resp = sess.put(
-        f"{_GRAPH_BASE}{path}",
-        data=data,
-        headers={"Content-Type": content_type},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json() if resp.content else {}
-
-
-def graph_delete(sess, path: str) -> bool:
-    resp = sess.delete(f"{_GRAPH_BASE}{path}", timeout=30)
-    resp.raise_for_status()
-    return True

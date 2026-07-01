@@ -1,0 +1,39 @@
+{
+  "tools": {
+    "gmail": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "max_results": 50,
+        "send_enabled": true,
+        "track_opens": true
+      }
+    },
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "log_emails": true,
+        "stale_deal_threshold_days": 7
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "config": {
+        "bot_token": "env:SLACK_BOT_TOKEN",
+        "default_channel": "#sales",
+        "deal_alerts_channel": "#deal-alerts"
+      }
+    },
+    "calendar": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "calendar_id": "primary"
+      }
+    }
+  }
+}

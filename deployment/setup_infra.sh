@@ -114,31 +114,6 @@ else
   success "Artifact Registry repo '$ARTIFACT_REGISTRY_REPO' created."
 fi
 
-# ── 5. Runtime service account for Cloud Run ─────────────────────────────────
-# Cloud Run services (e.g. calendar MCP) run as this SA.
-# The GitHub Actions SA must have iam.serviceaccounts.actAs on it to deploy.
-CLOUDRUN_SA="${CLOUDRUN_RUNTIME_SA:-knowledge-iq-agent@${GCP_PROJECT}.iam.gserviceaccount.com}"
-GITHUB_ACTION_SA="${GITHUB_ACTION_SA:-github-action@${GCP_PROJECT}.iam.gserviceaccount.com}"
-
-info "Ensuring Cloud Run runtime SA '${CLOUDRUN_SA}' exists…"
-SA_NAME="${CLOUDRUN_SA%%@*}"
-if gcloud iam service-accounts describe "${CLOUDRUN_SA}" --project="$GCP_PROJECT" &>/dev/null; then
-  success "Service account '${CLOUDRUN_SA}' already exists — skipping."
-else
-  info "Creating service account '${SA_NAME}'…"
-  gcloud iam service-accounts create "${SA_NAME}" \
-    --display-name="Knowledge IQ Cloud Run runtime SA" \
-    --project="$GCP_PROJECT"
-  success "Service account '${CLOUDRUN_SA}' created."
-fi
-
-info "Granting '${GITHUB_ACTION_SA}' roles/iam.serviceAccountUser on '${CLOUDRUN_SA}'…"
-gcloud iam service-accounts add-iam-policy-binding "${CLOUDRUN_SA}" \
-  --member="serviceAccount:${GITHUB_ACTION_SA}" \
-  --role="roles/iam.serviceAccountUser" \
-  --project="$GCP_PROJECT"
-success "IAM binding set (actAs permission granted to GitHub Actions SA)."
-
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "============================================"

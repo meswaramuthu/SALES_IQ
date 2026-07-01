@@ -1,0 +1,129 @@
+{
+  "tools": {
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "salesforce_instance_url": "env:SALESFORCE_INSTANCE_URL",
+        "salesforce_access_token": "env:SALESFORCE_ACCESS_TOKEN",
+        "default_crm": "hubspot"
+      }
+    },
+    "calendar": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "calendar_id": "primary",
+        "timezone": "UTC"
+      }
+    },
+    "gmail": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "max_results": 20
+      }
+    },
+    "gdrive": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai"
+      }
+    },
+    "apollo": {
+      "enabled": true,
+      "config": {
+        "api_key": "env:APOLLO_API_KEY",
+        "max_results": 25
+      }
+    },
+    "clearbit": {
+      "enabled": true,
+      "config": {
+        "api_key": "env:CLEARBIT_API_KEY"
+      }
+    },
+    "linkedin": {
+      "enabled": false,
+      "config": {
+        "client_id": "env:LINKEDIN_CLIENT_ID",
+        "client_secret": "env:LINKEDIN_CLIENT_SECRET",
+        "access_token": "env:LINKEDIN_ACCESS_TOKEN"
+      }
+    },
+    "docusign": {
+      "enabled": false,
+      "config": {
+        "account_id": "env:DOCUSIGN_ACCOUNT_ID",
+        "integration_key": "env:DOCUSIGN_INTEGRATION_KEY",
+        "user_id": "env:DOCUSIGN_USER_ID",
+        "rsa_private_key_gcs_uri": "gs://stratova-platform/creds/docusign-rsa.pem",
+        "base_path": "https://na4.docusign.net/restapi"
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "config": {
+        "bot_token": "env:SLACK_BOT_TOKEN",
+        "default_channel": "#sales"
+      }
+    },
+    "notion": {
+      "enabled": false,
+      "config": {
+        "api_token": "env:NOTION_API_TOKEN"
+      }
+    }
+  },
+  "sub_agents": {
+    "discovery_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/discovery_agent/agent-card.json",
+      "description": "Lead discovery, ICP scoring, and prospect enrichment"
+    },
+    "qualification_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/qualification_agent/agent-card.json",
+      "description": "BANT/MEDDIC qualification scoring and decision-maker mapping"
+    },
+    "booking_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/booking_agent/agent-card.json",
+      "description": "Meeting scheduling, calendar management, and demo booking"
+    },
+    "proposal_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/proposal_agent/agent-card.json",
+      "description": "Proposal generation, pricing configuration, and DocuSign sending"
+    },
+    "followup_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/followup_agent/agent-card.json",
+      "description": "Follow-up sequencing, nurture automation, and re-engagement"
+    },
+    "revenue_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/revenue_agent/agent-card.json",
+      "description": "Pipeline analytics, revenue forecasting, and quota tracking"
+    },
+    "dealdesk_agent": {
+      "enabled": true,
+      "resource_name": "",
+      "agent_card_url": "gs://stratova-platform/agents/sales-iq/dealdesk_agent/agent-card.json",
+      "description": "Deal structuring, discount approvals, and contract management"
+    }
+  },
+  "prompt": {
+    "source": "gcs",
+    "gcs_uri": "gs://stratova-platform/sales-iq/prompt.txt"
+  }
+}

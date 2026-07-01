@@ -1,0 +1,42 @@
+{
+  "tools": {
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "pull_deals": true,
+        "pull_contacts": true,
+        "pull_activities": true,
+        "pull_owners": true,
+        "stale_deal_threshold_days": 7,
+        "stage_weights": {
+          "prospecting": 0.05,
+          "qualified": 0.20,
+          "demo_scheduled": 0.35,
+          "proposal_sent": 0.50,
+          "negotiation": 0.75,
+          "contract_sent": 0.90,
+          "closed_won": 1.00,
+          "closed_lost": 0.00
+        }
+      }
+    },
+    "gdrive": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "reports_folder_id": "env:GDRIVE_REPORTS_FOLDER_ID"
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "config": {
+        "bot_token": "env:SLACK_BOT_TOKEN",
+        "revenue_channel": "#revenue-intelligence",
+        "default_channel": "#sales"
+      }
+    }
+  }
+}

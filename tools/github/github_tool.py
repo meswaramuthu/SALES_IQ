@@ -1,9 +1,8 @@
 """GitHub tool — full repository intelligence via PyGithub.
 
 Token requirements (set GITHUB_TOKEN in Vertex Agent Engine env vars):
-  - repo       : read AND write access to private repos
+  - repo       : read access to private repos
   - read:org   : list org repos and search across org
-  - delete_repo: required only for delete_github_repository
 
 In tools_config.json reference the token as:  "token": "env:GITHUB_TOKEN"
 
@@ -19,25 +18,14 @@ Tools exported:
   PULL REQUESTS
     list_github_pull_requests  - list PRs by state (open/closed/all)
     get_github_pull_request    - full PR: description, files changed (+patch), reviews, merge status
-    create_github_pull_request - open a new pull request
-    merge_github_pull_request  - merge a pull request
 
   ISSUES
     search_github_issues       - search issues AND PRs via GitHub search syntax
     get_github_issue           - full issue body + all comment thread
-    create_github_issue        - create a new issue
-    update_github_issue        - update title, body, state, labels, assignees
-    add_github_comment         - post a comment on an issue or PR
 
-  CODE / FILES
+  CODE
     search_github_code         - full-text code search with content snippet
     get_github_file_content    - read any file at any branch/tag/SHA
-    create_or_update_github_file - create or update a file in a repo
-    delete_github_file         - delete a file from a repo
-
-  BRANCHES
-    create_github_branch       - create a new branch from an existing ref
-    delete_github_branch       - delete a branch
 """
 from __future__ import annotations
 
@@ -389,7 +377,7 @@ def get_tools() -> list[Callable]:
             reviews = [
                 {
                     "reviewer": rv.user.login,
-                    "state": rv.state,
+                    "state": rv.state,           # APPROVED | CHANGES_REQUESTED | COMMENTED
                     "submitted_at": rv.submitted_at.isoformat() if rv.submitted_at else "",
                     "body": rv.body or "",
                 }
@@ -428,100 +416,6 @@ def get_tools() -> list[Callable]:
             }
         except Exception as exc:
             logger.error("get_github_pull_request error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def create_github_pull_request(
-        title: str,
-        head: str,
-        base: str,
-        body: str = "",
-        repo: str = "",
-        draft: bool = False,
-    ) -> dict:
-        """Create a new pull request in a GitHub repository.
-
-        Args:
-            title: PR title.
-            head: Branch name with the changes to merge (e.g. 'feature/auth-fix').
-            base: Target branch to merge into (e.g. 'main', 'dev').
-            body: PR description (markdown supported). Optional.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-            draft: Create as a draft PR (default False).
-
-        Returns:
-            dict with PR number, title, URL, and state.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r  = gh.get_repo(repo)
-            pr = r.create_pull(title=title, body=body, head=head, base=base, draft=draft)
-            return {
-                "number": pr.number,
-                "title": pr.title,
-                "state": pr.state,
-                "url": pr.html_url,
-                "head": head,
-                "base": base,
-                "draft": draft,
-                "status": "created",
-            }
-        except Exception as exc:
-            logger.error("create_github_pull_request error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def merge_github_pull_request(
-        pr_number: int,
-        repo: str = "",
-        merge_method: str = "merge",
-        commit_title: str = "",
-        commit_message: str = "",
-    ) -> dict:
-        """Merge a pull request.
-
-        Args:
-            pr_number: Pull request number to merge.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-            merge_method: Merge strategy — 'merge' (default), 'squash', or 'rebase'.
-            commit_title: Custom merge commit title. Leave blank to use GitHub default.
-            commit_message: Custom merge commit message. Leave blank to use GitHub default.
-
-        Returns:
-            dict with merge SHA and status confirming the merge.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r  = gh.get_repo(repo)
-            pr = r.get_pull(pr_number)
-            kwargs: dict = {"merge_method": merge_method}
-            if commit_title:
-                kwargs["commit_title"] = commit_title
-            if commit_message:
-                kwargs["commit_message"] = commit_message
-
-            result = pr.merge(**kwargs)
-            return {
-                "pr_number": pr_number,
-                "merged": result.merged,
-                "sha": result.sha,
-                "message": result.message,
-                "status": "merged" if result.merged else "not_merged",
-            }
-        except Exception as exc:
-            logger.error("merge_github_pull_request error: %s", exc)
             return {"status": "error", "message": str(exc)}
 
     # ── ISSUES ───────────────────────────────────────────────────────────────
@@ -628,147 +522,7 @@ def get_tools() -> list[Callable]:
             logger.error("get_github_issue error: %s", exc)
             return {"status": "error", "message": str(exc)}
 
-    def create_github_issue(
-        title: str,
-        body: str = "",
-        repo: str = "",
-        labels: list[str] | None = None,
-        assignees: list[str] | None = None,
-    ) -> dict:
-        """Create a new GitHub issue.
-
-        Args:
-            title: Issue title.
-            body: Issue description (markdown supported). Optional.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-            labels: List of label names to apply (e.g. ['bug', 'priority:high']).
-            assignees: List of GitHub usernames to assign (e.g. ['alice', 'bob']).
-
-        Returns:
-            dict with issue number, title, URL, and state.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            from github import GithubObject
-
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r = gh.get_repo(repo)
-            issue = r.create_issue(
-                title=title,
-                body=body or GithubObject.NotSet,
-                labels=labels or GithubObject.NotSet,
-                assignees=assignees or GithubObject.NotSet,
-            )
-            return {
-                "number": issue.number,
-                "title": issue.title,
-                "state": issue.state,
-                "url": issue.html_url,
-                "status": "created",
-            }
-        except Exception as exc:
-            logger.error("create_github_issue error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def update_github_issue(
-        issue_number: int,
-        repo: str = "",
-        title: str = "",
-        body: str = "",
-        state: str = "",
-        labels: list[str] | None = None,
-        assignees: list[str] | None = None,
-    ) -> dict:
-        """Update an existing GitHub issue.
-
-        Only the fields you supply are changed; omitted fields stay as-is.
-
-        Args:
-            issue_number: Issue number to update.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-            title: New title. Leave blank to keep existing.
-            body: New description. Leave blank to keep existing.
-            state: 'open' or 'closed'. Leave blank to keep existing.
-            labels: New label list (replaces all existing labels).
-            assignees: New assignee list (replaces all existing assignees).
-
-        Returns:
-            dict with updated issue number, title, state, and URL.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            from github import GithubObject
-
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            issue = gh.get_repo(repo).get_issue(issue_number)
-            kwargs: dict = {}
-            if title:
-                kwargs["title"] = title
-            if body:
-                kwargs["body"] = body
-            if state in ("open", "closed"):
-                kwargs["state"] = state
-            if labels is not None:
-                kwargs["labels"] = labels
-            if assignees is not None:
-                kwargs["assignees"] = assignees
-            if not kwargs:
-                return {"status": "error", "message": "No fields to update were provided."}
-
-            issue.edit(**kwargs)
-            return {
-                "number": issue.number,
-                "title": issue.title,
-                "state": issue.state,
-                "url": issue.html_url,
-                "status": "updated",
-            }
-        except Exception as exc:
-            logger.error("update_github_issue error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def add_github_comment(repo: str, issue_number: int, body: str) -> dict:
-        """Post a comment on a GitHub issue or pull request.
-
-        Args:
-            repo: Repository 'owner/name'.
-            issue_number: Issue or PR number to comment on.
-            body: Comment text (markdown supported).
-
-        Returns:
-            dict with comment id, author, created_at, and URL.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh      = _gh(_token(cfg.config))
-            issue   = gh.get_repo(repo).get_issue(issue_number)
-            comment = issue.create_comment(body)
-            return {
-                "comment_id": comment.id,
-                "author": comment.user.login,
-                "created_at": comment.created_at.isoformat(),
-                "url": comment.html_url,
-                "status": "commented",
-            }
-        except Exception as exc:
-            logger.error("add_github_comment error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    # ── CODE / FILES ──────────────────────────────────────────────────────────
+    # ── CODE ─────────────────────────────────────────────────────────────────
 
     def search_github_code(query: str, repo: str = "", max_results: int = 10) -> dict:
         """Search code across GitHub repositories with content snippets.
@@ -799,6 +553,7 @@ def get_tools() -> list[Callable]:
 
             items = []
             for item in gh.search_code(q)[:max_results]:
+                # Fetch a short content snippet
                 snippet = ""
                 try:
                     raw = item.repository.get_contents(item.path)
@@ -850,6 +605,7 @@ def get_tools() -> list[Callable]:
             content = r.get_contents(**kwargs)
 
             if isinstance(content, list):
+                # It's a directory
                 return {
                     "type": "directory",
                     "path": file_path,
@@ -869,193 +625,6 @@ def get_tools() -> list[Callable]:
             logger.error("get_github_file_content error: %s", exc)
             return {"status": "error", "message": str(exc)}
 
-    def create_or_update_github_file(
-        file_path: str,
-        content: str,
-        commit_message: str,
-        repo: str = "",
-        branch: str = "",
-    ) -> dict:
-        """Create a new file or update an existing file in a GitHub repository.
-
-        If the file already exists the current SHA is fetched automatically
-        so you do not need to supply it.
-
-        Args:
-            file_path: Path where the file should be created/updated
-                       (e.g. 'docs/runbook.md', 'src/config.py').
-            content: Full file content as a plain text string (UTF-8).
-            commit_message: Commit message for this change.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-            branch: Branch to commit to. Uses repo default branch if blank.
-
-        Returns:
-            dict with file path, commit SHA, and URL.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r   = gh.get_repo(repo)
-            ref = branch or r.default_branch
-
-            try:
-                existing = r.get_contents(file_path, ref=ref)
-                result = r.update_file(
-                    path=file_path,
-                    message=commit_message,
-                    content=content,
-                    sha=existing.sha,
-                    branch=ref,
-                )
-                action = "updated"
-            except Exception:
-                result = r.create_file(
-                    path=file_path,
-                    message=commit_message,
-                    content=content,
-                    branch=ref,
-                )
-                action = "created"
-
-            commit = result.get("commit")
-            file_obj = result.get("content")
-            return {
-                "path": file_path,
-                "branch": ref,
-                "commit_sha": commit.sha if commit else "",
-                "commit_message": commit_message,
-                "url": file_obj.html_url if file_obj else "",
-                "status": action,
-            }
-        except Exception as exc:
-            logger.error("create_or_update_github_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def delete_github_file(
-        file_path: str,
-        commit_message: str,
-        repo: str = "",
-        branch: str = "",
-    ) -> dict:
-        """Delete a file from a GitHub repository.
-
-        Args:
-            file_path: Path to the file to delete (e.g. 'docs/old-runbook.md').
-            commit_message: Commit message for this deletion.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-            branch: Branch to delete from. Uses repo default branch if blank.
-
-        Returns:
-            dict with commit SHA confirming the deletion.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r   = gh.get_repo(repo)
-            ref = branch or r.default_branch
-            existing = r.get_contents(file_path, ref=ref)
-            result = r.delete_file(
-                path=file_path,
-                message=commit_message,
-                sha=existing.sha,
-                branch=ref,
-            )
-            commit = result.get("commit")
-            return {
-                "path": file_path,
-                "branch": ref,
-                "commit_sha": commit.sha if commit else "",
-                "status": "deleted",
-            }
-        except Exception as exc:
-            logger.error("delete_github_file error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    # ── BRANCHES ──────────────────────────────────────────────────────────────
-
-    def create_github_branch(
-        branch_name: str,
-        from_ref: str = "",
-        repo: str = "",
-    ) -> dict:
-        """Create a new branch in a GitHub repository.
-
-        Args:
-            branch_name: Name for the new branch (e.g. 'feature/new-login',
-                         'fix/auth-timeout').
-            from_ref: Branch, tag, or commit SHA to branch from. Uses the
-                      repo's default branch if blank.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-
-        Returns:
-            dict with new branch name, source SHA, and URL.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r      = gh.get_repo(repo)
-            source = from_ref or r.default_branch
-            sha    = r.get_branch(source).commit.sha
-            r.create_git_ref(ref=f"refs/heads/{branch_name}", sha=sha)
-            return {
-                "branch": branch_name,
-                "from_ref": source,
-                "sha": sha,
-                "url": f"{r.html_url}/tree/{branch_name}",
-                "status": "created",
-            }
-        except Exception as exc:
-            logger.error("create_github_branch error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
-    def delete_github_branch(branch_name: str, repo: str = "") -> dict:
-        """Delete a branch from a GitHub repository.
-
-        The branch must not be the default branch. Use this to clean up
-        feature branches after a PR is merged.
-
-        Args:
-            branch_name: Branch to delete.
-            repo: Repository 'owner/name'. Uses default_repo if not specified.
-
-        Returns:
-            dict confirming deletion.
-        """
-        cfg = get_config().tools.get("github")
-        if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "GitHub tool is currently disabled."}
-        try:
-            gh   = _gh(_token(cfg.config))
-            repo = _resolve_repo(cfg.config, repo)
-            if not repo:
-                return {"status": "error", "message": "No repo specified and default_repo is not configured."}
-
-            r   = gh.get_repo(repo)
-            ref = r.get_git_ref(f"heads/{branch_name}")
-            ref.delete()
-            return {"branch": branch_name, "repo": repo, "status": "deleted"}
-        except Exception as exc:
-            logger.error("delete_github_branch error: %s", exc)
-            return {"status": "error", "message": str(exc)}
-
     return [
         # Discovery
         list_github_repos,
@@ -1063,23 +632,13 @@ def get_tools() -> list[Callable]:
         # Commits
         list_github_commits,
         get_github_commit,
-        # Pull Requests
+        # Pull requests
         list_github_pull_requests,
         get_github_pull_request,
-        create_github_pull_request,
-        merge_github_pull_request,
         # Issues
         search_github_issues,
         get_github_issue,
-        create_github_issue,
-        update_github_issue,
-        add_github_comment,
-        # Code / Files
+        # Code
         search_github_code,
         get_github_file_content,
-        create_or_update_github_file,
-        delete_github_file,
-        # Branches
-        create_github_branch,
-        delete_github_branch,
     ]

@@ -1,0 +1,36 @@
+{
+  "tools": {
+    "crm": {
+      "enabled": true,
+      "config": {
+        "hubspot_api_key": "env:HUBSPOT_API_KEY",
+        "default_crm": "hubspot",
+        "pull_notes": true,
+        "pull_activities": true,
+        "pull_deals": true
+      }
+    },
+    "gmail": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "max_results": 30
+      }
+    },
+    "calendar": {
+      "enabled": true,
+      "config": {
+        "service_account_key_gcs_uri": "gs://stratova-platform/creds/google-sa.json",
+        "user_email": "sales@stratova.ai",
+        "calendar_id": "primary"
+      }
+    },
+    "clearbit": {
+      "enabled": true,
+      "config": {
+        "api_key": "env:CLEARBIT_API_KEY"
+      }
+    }
+  }
+}

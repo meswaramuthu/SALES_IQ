@@ -1,0 +1,19 @@
+{
+  "model": "gemini-2.5-flash",
+  "temperature": 0.2,
+  "max_output_tokens": 4096,
+  "top_p": 0.9,
+  "top_k": 40,
+  "enable_tracing": true,
+  "safety_settings": {
+    "harassment": "BLOCK_ONLY_HIGH",
+    "hate_speech": "BLOCK_ONLY_HIGH",
+    "sexually_explicit": "BLOCK_ONLY_HIGH",
+    "dangerous_content": "BLOCK_ONLY_HIGH"
+  },
+  "agent_engine": {
+    "display_name": "AURA Booking Agent — Meeting Scheduling & Calendar",
+    "description": "Schedules sales meetings, sends invitations, generates meeting prep briefs, logs activities to CRM, and triggers post-meeting follow-up sequences.",
+    "location": "us-central1"
+  }
+}

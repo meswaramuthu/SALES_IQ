@@ -1,0 +1,19 @@
+{
+  "model": "gemini-2.5-flash",
+  "temperature": 0.4,
+  "max_output_tokens": 16384,
+  "top_p": 0.95,
+  "top_k": 40,
+  "enable_tracing": true,
+  "safety_settings": {
+    "harassment": "BLOCK_ONLY_HIGH",
+    "hate_speech": "BLOCK_ONLY_HIGH",
+    "sexually_explicit": "BLOCK_ONLY_HIGH",
+    "dangerous_content": "BLOCK_ONLY_HIGH"
+  },
+  "agent_engine": {
+    "display_name": "AURA Proposal Agent — Proposal & Quote Generation",
+    "description": "Generates personalised sales proposals, pricing quotes, and ROI models. Creates Google Docs and sends DocuSign envelopes. Escalates high-discount deals to deal desk.",
+    "location": "us-central1"
+  }
+}

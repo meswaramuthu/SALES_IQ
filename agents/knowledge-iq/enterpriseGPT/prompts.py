@@ -138,14 +138,13 @@ def _tool_status_block(cfg: AgentConfig) -> str:
 
 def _sub_agent_block(cfg: AgentConfig) -> str:
     """Build capability block from Agent Cards for each enabled sub-agent."""
-    enabled = {k: v for k, v in cfg.sub_agents.items() if v.enabled}
-    if not enabled:
-        return ""
-    lines = []
-    for name, sub in enabled.items():
-        desc = sub.description or name
-        lines.append(f"- {name}: {desc}")
-    return "Available sub-agents:\n" + "\n".join(lines)
+    try:
+        from stratova_shared.agent_card import build_capabilities_block
+        sub_agents_dict = {k: v.model_dump() for k, v in cfg.sub_agents.items()}
+        return build_capabilities_block(sub_agents_dict)
+    except Exception as exc:
+        logger.warning("Failed to build sub-agent capability block: %s", exc)
+        return "(sub-agent capabilities unavailable)"
 
 
 def build_instruction(context: Any = None) -> str:
