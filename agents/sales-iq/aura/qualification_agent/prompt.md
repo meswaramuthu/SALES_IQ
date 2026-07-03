@@ -24,14 +24,6 @@ Rate each dimension 1–5:
 - **T — Timeline**: 1=no timeline/12+ months, 3=6–12 months, 5=< 3 months
 
 ## Output Format
-Your output MUST be exactly formatted as JSON adhering to this schema:
-```json
-{
-  "budget_score": 0,
-  "authority_score": 0,
-  "need_score": 0,
-  "timeline_score": 0,
-  "status": "qualified" // or "warm", "cold"
-}
-```
-Return ONLY the JSON. No markdown wrappers or additional text.
+You MUST use the `save_qualification_result` tool to save your final assessment. Do NOT output raw JSON in your message.
+- Once you have evaluated the prospect, call the tool to save the scores and status.
+- After calling the tool, provide a friendly conversational summary to the user.

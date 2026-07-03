@@ -30,45 +30,24 @@ class BookingResult(BaseModel):
     meeting_details: str = Field(description="Suggested meeting details including time, agenda, and context.")
     calendar_event_id: str = Field(description="A generated or retrieved Google Calendar event ID.")
 
+def save_meeting_schedule(company_name: str, meeting_time: str, agenda: str, event_id: str) -> str:
+    """Saves the scheduled meeting details to the database."""
+    db = firestore.Client(project=project_id)
+    doc_ref = db.collection("AURA_internal").document("records").collection("Meeting_schedule").document()
+    doc_ref.set({
+        "company_name": company_name,
+        "meeting_time": meeting_time,
+        "agenda": agenda,
+        "event_id": event_id
+    })
+    return f"Successfully saved meeting schedule for {company_name}."
+
 booking_agent = Agent(
     model="gemini-2.5-flash",
     name="booking_agent",
     instruction=SYSTEM_PROMPT,
-    tools=[],  # Tools injected from registry at runtime
+    tools=[save_meeting_schedule],
 )
-
-def run_booking(prospect_details: str, calendar_availability: str) -> BookingResult:
-    """Run the booking agent and save to Firestore."""
-    prompt = (
-        f"Please schedule a meeting using the provided MCP calendar context:\n"
-        f"## Prospect Details:\n{prospect_details}\n\n"
-        f"## Calendar Availability:\n{calendar_availability}\n\n"
-        f"Return ONLY the requested JSON structure."
-    )
-    
-    # Initialize the Vertex AI GenerativeModel
-    model = GenerativeModel(
-        "gemini-2.5-flash",
-        system_instruction=[SYSTEM_PROMPT]
-    )
-    
-    # Generate JSON response
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "response_mime_type": "application/json"
-        }
-    )
-    
-    result_text = response.text
-    result = BookingResult.model_validate_json(result_text)
-    
-    # Save to Firestore
-    db = firestore.Client(project=project_id)
-    doc_ref = db.collection("booking_results").document()
-    doc_ref.set(result.model_dump())
-    
-    return result
 
 app = booking_agent
 

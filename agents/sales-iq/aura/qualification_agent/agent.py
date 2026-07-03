@@ -34,46 +34,42 @@ class QualificationResult(BaseModel):
     timeline_score: int = Field(description="BANT Timeline Score (1-5)")
     status: Literal["qualified", "warm", "cold"] = Field(description="Final qualification status: qualified, warm, or cold")
 
+def save_qualification_result(
+    company_name: str,
+    budget_score: int,
+    authority_score: int,
+    need_score: int,
+    timeline_score: int,
+    status: Literal["qualified", "warm", "cold"],
+    notes: str
+) -> str:
+    """Saves the final qualification result of a prospect to the database. Use this after analyzing a prospect."""
+    db = firestore.Client(project=project_id)
+    
+    if status == "qualified":
+        collection_name = "Qualified_proposal"
+    else:
+        collection_name = "Unqualified_proposal"
+        
+    doc_ref = db.collection("AURA_internal").document("records").collection(collection_name).document()
+    doc_ref.set({
+        "company_name": company_name,
+        "budget_score": budget_score,
+        "authority_score": authority_score,
+        "need_score": need_score,
+        "timeline_score": timeline_score,
+        "status": status,
+        "notes": notes
+    })
+    
+    return f"Successfully saved {company_name} to {collection_name}."
+
 qualification_agent = Agent(
     model="gemini-2.5-flash",
     name="qualification_agent",
     instruction=SYSTEM_PROMPT,
-    tools=[],  # Tools injected from registry at runtime
+    tools=[save_qualification_result],
 )
-
-def run_qualification(company_data: str, meeting_notes: str, prospect_info: str) -> QualificationResult:
-    """Run the qualification agent and save to Firestore."""
-    prompt = (
-        f"Please qualify this prospect based on the following information:\n"
-        f"## Company Data:\n{company_data}\n\n"
-        f"## Meeting Notes:\n{meeting_notes}\n\n"
-        f"## Prospect Information:\n{prospect_info}\n\n"
-        f"Return ONLY the requested JSON structure."
-    )
-    
-    # Initialize the Vertex AI GenerativeModel
-    model = GenerativeModel(
-        "gemini-2.5-flash",
-        system_instruction=[SYSTEM_PROMPT]
-    )
-    
-    # Generate JSON response
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "response_mime_type": "application/json"
-        }
-    )
-    
-    result_text = response.text
-    result = QualificationResult.model_validate_json(result_text)
-    
-    # Save to Firestore
-    db = firestore.Client(project=project_id)
-    doc_ref = db.collection("qualification_results").document()
-    doc_ref.set(result.model_dump())
-    
-    return result
 
 app = qualification_agent
 
