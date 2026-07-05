@@ -1,0 +1,221 @@
+{
+  "eval_set_id": "enterpriseGPT_github_eval_set",
+  "name": "GitHub Tool Evaluation",
+  "description": "Evaluates the agent's ability to query repositories, commits, pull requests, issues, and code via the GitHub REST API. Uses stratova-ai/Stratova as the default repo.",
+  "eval_cases": [
+    {
+      "eval_id": "github_list_repos",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0001-4000-8000-000000000001",
+          "user_content": {
+            "parts": [{ "text": "List all repositories in our GitHub organisation." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the repositories in your GitHub organisation." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_github_repos",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "github_get_repository_details",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0002-4000-8000-000000000002",
+          "user_content": {
+            "parts": [{ "text": "Give me details about the Stratova repository." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the details for the Stratova repository." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "get_github_repository",
+                "args": { "repo": "stratova-ai/Stratova" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "github_list_commits",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0003-4000-8000-000000000003",
+          "user_content": {
+            "parts": [{ "text": "Show me the last 10 commits on the main branch of the Stratova repository." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the last 10 commits on the main branch of Stratova." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_github_commits",
+                "args": { "repo": "stratova-ai/Stratova", "branch": "main", "limit": 10 }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "github_list_open_prs",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0004-4000-8000-000000000004",
+          "user_content": {
+            "parts": [{ "text": "List all open pull requests in the Stratova repository." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the open pull requests in the Stratova repository." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_github_pull_requests",
+                "args": { "repo": "stratova-ai/Stratova", "state": "open" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "github_search_issues_bug",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0005-4000-8000-000000000005",
+          "user_content": {
+            "parts": [{ "text": "Search GitHub issues for anything labelled bug in the Stratova repo." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the GitHub issues labelled bug in Stratova." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_github_issues",
+                "args": { "query": "label:bug", "repo": "stratova-ai/Stratova" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "github_search_code",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0006-4000-8000-000000000006",
+          "user_content": {
+            "parts": [{ "text": "Search the codebase for all usages of build_rag_tools." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the search results for build_rag_tools in the codebase." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_github_code",
+                "args": { "query": "build_rag_tools" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "github_get_file_content",
+      "conversation": [
+        {
+          "invocation_id": "b1b2c3d4-0007-4000-8000-000000000007",
+          "user_content": {
+            "parts": [{ "text": "Show me the content of README.md on the main branch of the Stratova repository." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the content of README.md on the main branch." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "get_github_file_content",
+                "args": {
+                  "repo": "stratova-ai/Stratova",
+                  "path": "README.md",
+                  "branch": "main"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

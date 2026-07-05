@@ -1,0 +1,97 @@
+{
+  "eval_set_id": "enterpriseGPT_google_eval_set",
+  "name": "Gemini Enterprise Connector Evaluation",
+  "description": "Evaluates the agent's ability to search across all Gemini Enterprise connected data sources. Gmail is disabled in tools_config.json — only gemini_connectors cases are included.",
+  "eval_cases": [
+    {
+      "eval_id": "gemini_connector_product_roadmap",
+      "conversation": [
+        {
+          "invocation_id": "e1b2c3d4-0004-4000-8000-000000000004",
+          "user_content": {
+            "parts": [{ "text": "Search across all connected data sources for anything about the product roadmap." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is what I found about the product roadmap across all connected sources." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_gemini_connectors",
+                "args": { "query": "product roadmap" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "gemini_connector_gdpr",
+      "conversation": [
+        {
+          "invocation_id": "e1b2c3d4-0005-4000-8000-000000000005",
+          "user_content": {
+            "parts": [{ "text": "Search everything connected for mentions of GDPR compliance." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the results for GDPR compliance across all connected sources." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_gemini_connectors",
+                "args": { "query": "GDPR compliance" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "gemini_connector_security_policy",
+      "conversation": [
+        {
+          "invocation_id": "e1b2c3d4-0006-4000-8000-000000000006",
+          "user_content": {
+            "parts": [{ "text": "What does our security policy say about data retention? Search all connected sources." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is what I found about data retention in our security policy." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_gemini_connectors",
+                "args": { "query": "security policy data retention" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

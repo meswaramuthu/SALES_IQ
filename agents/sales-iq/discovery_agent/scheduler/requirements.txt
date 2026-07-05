@@ -1,0 +1,18 @@
+# ── GCP / Vertex AI ───────────────────────────────────────────────────────────
+google-cloud-aiplatform[adk]>=1.108.0   # vertexai module is bundled inside this package
+google-cloud-storage>=2.0
+google-auth>=2.36.0
+
+# ── Data sources ──────────────────────────────────────────────────────────────
+msal>=1.20.0                # SharePoint — Azure AD app-only auth
+requests>=2.32.3            # SharePoint — Graph API HTTP calls
+PyGithub>=2.0               # GitHub — repository, tree, compare APIs
+
+# ── Webhook server ────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# ── Shared with knowledge_iq agent ───────────────────────────────────────────
+pydantic>=2.0
+pydantic-settings>=2.8.1
+beautifulsoup4>=4.12.0      # used by knowledge_iq imports

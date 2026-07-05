@@ -1,0 +1,11 @@
+{
+  "name": "discovery_agent",
+  "display_name": "Discovery Agent",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: discovery_agent",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/discovery_agent/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}

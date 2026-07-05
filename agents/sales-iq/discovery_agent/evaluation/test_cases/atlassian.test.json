@@ -1,0 +1,97 @@
+{
+  "eval_set_id": "enterpriseGPT_atlassian_eval_set",
+  "name": "Atlassian Tool Evaluation (Jira + Confluence)",
+  "description": "Jira and Confluence are ENABLED in tools_config.json. Credentials use env:JIRA_API_TOKEN and env:CONFLUENCE_API_TOKEN. Jira workspace: stratova.atlassian.net (projects: LAAB, SBP, SPP, STRAT). Confluence: stratova.atlassian.net/wiki.",
+  "eval_cases": [
+    {
+      "eval_id": "jira_search_open_bugs",
+      "conversation": [
+        {
+          "invocation_id": "c1b2c3d4-0001-4000-8000-000000000001",
+          "user_content": {
+            "parts": [{ "text": "Search Jira for all open bug tickets assigned to me." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the open Jira bug tickets assigned to you." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_jira",
+                "args": { "jql": "assignee = currentUser() AND issuetype = Bug AND status != Done ORDER BY created DESC" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "jira_high_priority_issues",
+      "conversation": [
+        {
+          "invocation_id": "c1b2c3d4-0002-4000-8000-000000000002",
+          "user_content": {
+            "parts": [{ "text": "What are all the high priority Jira issues in the current sprint?" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the high priority Jira issues in the current sprint." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_jira",
+                "args": { "jql": "sprint in openSprints() AND priority in (High, Highest) ORDER BY priority DESC" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "confluence_search_onboarding",
+      "conversation": [
+        {
+          "invocation_id": "c1b2c3d4-0003-4000-8000-000000000003",
+          "user_content": {
+            "parts": [{ "text": "Search Confluence for the engineering onboarding guide." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the engineering onboarding guide from Confluence." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_confluence",
+                "args": { "query": "engineering onboarding guide" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

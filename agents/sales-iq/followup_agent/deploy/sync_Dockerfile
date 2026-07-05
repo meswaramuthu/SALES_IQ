@@ -1,0 +1,29 @@
+# Build context: agents/knowledge-iq/
+# docker build -t <image> -f sync/Dockerfile .
+#
+# Runs as both a Cloud Run Job (sync.job) and a Cloud Run Service (sync.webhook_server).
+# The default CMD below is for the cron job. Override with:
+#   --command python --args -m,sync.webhook_server   (Cloud Run Service)
+
+FROM python:3.12-slim
+
+# Minimal system deps for native Python extensions
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python deps first (layer cached unless requirements.txt changes)
+COPY sync/requirements.txt ./sync/requirements.txt
+RUN pip install --no-cache-dir -r sync/requirements.txt
+
+# Copy source packages — knowledge_iq (shared creds + utils) and sync service
+COPY knowledge_iq/ ./knowledge_iq/
+COPY sync/ ./sync/
+
+# Make both packages importable
+ENV PYTHONPATH=/app
+
+# Default: Cloud Run Job
+CMD ["python", "-m", "sync.job"]

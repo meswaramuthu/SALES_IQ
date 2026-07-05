@@ -1,0 +1,10 @@
+{
+  "project": "ninth-archway-496404-s2",
+  "location": "us-central1",
+  "staging_bucket": "gs://stratova-platform",
+  "rag_corpus": "projects/528271267622/locations/us-west1/ragCorpora/4611686018427387904",
+  "rag_location": "us-west1",
+  "tools_config_gcs_uri": "gs://stratova-platform/knowledge-iq/tools_config.json",
+  "prompt_gcs_uri": "gs://stratova-platform/knowledge-iq/prompt.txt",
+  "agent_engine": "projects/528271267622/locations/us-central1/reasoningEngines/2775842998401892352"
+}

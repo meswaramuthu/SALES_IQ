@@ -1,0 +1,157 @@
+{
+  "eval_set_id": "enterpriseGPT_sharepoint_eval_set",
+  "name": "SharePoint (Microsoft Graph) Evaluation",
+  "description": "Evaluates the agent's ability to list sites, search files, retrieve content, and query lists via Microsoft Graph API. Expected args match exact values the agent passes.",
+  "eval_cases": [
+    {
+      "eval_id": "sharepoint_list_sites",
+      "conversation": [
+        {
+          "invocation_id": "d1b2c3d4-0001-4000-8000-000000000001",
+          "user_content": {
+            "parts": [{ "text": "List all SharePoint sites I have access to." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the SharePoint sites you have access to." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_sharepoint_sites",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "sharepoint_search_files_nda",
+      "conversation": [
+        {
+          "invocation_id": "d1b2c3d4-0003-4000-8000-000000000003",
+          "user_content": {
+            "parts": [{ "text": "Search SharePoint for any files containing NDA." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the SharePoint files related to NDA." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_sharepoint_files",
+                "args": { "query": "NDA" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "sharepoint_full_text_search",
+      "conversation": [
+        {
+          "invocation_id": "d1b2c3d4-0004-4000-8000-000000000004",
+          "user_content": {
+            "parts": [{ "text": "Search across all SharePoint content for anything about budget approvals." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the SharePoint results for budget approvals." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_sharepoint",
+                "args": { "query": "budget approvals" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "sharepoint_list_sharepoint_lists",
+      "conversation": [
+        {
+          "invocation_id": "d1b2c3d4-0005-4000-8000-000000000005",
+          "user_content": {
+            "parts": [{ "text": "List all SharePoint lists available." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the SharePoint lists available." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_sharepoint_lists",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "sharepoint_search_board_deck",
+      "conversation": [
+        {
+          "invocation_id": "d1b2c3d4-0006-4000-8000-000000000006",
+          "user_content": {
+            "parts": [{ "text": "Search SharePoint for any file named Q2-2026-Board-Deck.pptx." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the result for Q2-2026-Board-Deck.pptx from SharePoint." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_sharepoint_files",
+                "args": { "query": "Q2-2026-Board-Deck.pptx" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

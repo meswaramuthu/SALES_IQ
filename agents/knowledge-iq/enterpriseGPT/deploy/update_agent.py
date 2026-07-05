@@ -93,11 +93,12 @@ def _update_agent(
     log.info("━━  Step 2 › Update existing Agent Engine  ━━")
     log.info("Resource: %s", resource_name)
 
+    import importlib.util as _util
     import subprocess
 
+    import cloudpickle as _cloudpickle
     import vertexai
     from vertexai import agent_engines
-    from vertexai.preview.reasoning_engines import AdkApp
 
     # Install deps first
     log.info("Syncing dependencies …")
@@ -106,11 +107,35 @@ def _update_agent(
     sys.path.insert(0, str(_REPO_ROOT))    # for tools/ package at repo root
     sys.path.insert(0, str(_PROJECT_ROOT)) # for agent.py, config.py, prompts.py
 
+    # Evict stale cached modules from any prior import in this process
+    for _stale in list(sys.modules.keys()):
+        if _stale in ("agent", "config", "prompts") or _stale.startswith(("agent.", "config.", "prompts.")):
+            del sys.modules[_stale]
+
     vertexai.init(project=project, location=location, staging_bucket=staging_bucket)
 
-    from agent import root_agent  # noqa: PLC0415  (agent.py is at _PROJECT_ROOT)
+    def _load_module(mod_name: str, file_path):
+        spec = _util.spec_from_file_location(mod_name, str(file_path))
+        mod = _util.module_from_spec(spec)
+        sys.modules[mod_name] = mod
+        spec.loader.exec_module(mod)
+        return mod
 
-    wrapped = AdkApp(agent=root_agent, enable_tracing=True)
+    _config_mod  = _load_module("config",  _PROJECT_ROOT / "config.py")
+    _prompts_mod = _load_module("prompts", _PROJECT_ROOT / "prompts.py")
+    _agent_mod   = _load_module("agent",   _PROJECT_ROOT / "agent.py")
+
+    root_agent = _agent_mod.root_agent
+    StreamingAdkApp = _agent_mod.StreamingAdkApp
+
+    for _mod_name, _mod in [("agent", _agent_mod), ("config", _config_mod), ("prompts", _prompts_mod)]:
+        try:
+            _cloudpickle.register_pickle_by_value(_mod)
+            log.info("Registered '%s' for by-value pickling.", _mod_name)
+        except Exception as _e:
+            log.warning("Could not register '%s' by value: %s", _mod_name, _e)
+
+    wrapped = StreamingAdkApp(agent=root_agent, enable_tracing=True)
 
     # Build env vars
     agent_env_vars: dict[str, str] = {"GOOGLE_GENAI_USE_VERTEXAI": "1"}
@@ -134,26 +159,13 @@ def _update_agent(
 
     log.info("Env vars being set on remote agent: %s", sorted(agent_env_vars.keys()))
 
-    # Register flat local modules by value (belt-and-suspenders).
-    import importlib as _importlib
-    import cloudpickle as _cloudpickle
-    for _local_mod_name in ["prompts", "config", "agent"]:
-        try:
-            _mod = _importlib.import_module(_local_mod_name)
-            _cloudpickle.register_pickle_by_value(_mod)
-            log.info("Registered '%s' for by-value pickling.", _local_mod_name)
-        except Exception as _e:
-            log.warning("Could not register '%s' by value: %s", _local_mod_name, _e)
-
     # Bundle flat files + tools/ together so remote can import both.
-    # All tool modules do `from config import get_config` at module level; config.py
-    # must be at the archive root alongside tools/.
     import shutil
     import tempfile as _tempfile
 
     with _tempfile.TemporaryDirectory(prefix="laabu_bundle_") as _tmp_bundle:
         _bundle = Path(_tmp_bundle)
-        for _fname in ["agent.py", "config.py", "prompts.py"]:
+        for _fname in ["agent.py", "config.py", "prompts.py", "file_converter.py"]:
             _src = _PROJECT_ROOT / _fname
             if _src.exists():
                 shutil.copy2(_src, _bundle / _fname)

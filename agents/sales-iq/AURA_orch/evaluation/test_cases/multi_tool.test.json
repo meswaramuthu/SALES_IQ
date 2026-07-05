@@ -1,0 +1,109 @@
+{
+  "eval_set_id": "enterpriseGPT_multi_tool_eval_set",
+  "name": "Multi-Tool Cross-Source Evaluation",
+  "description": "Evaluates the agent's ability to combine multiple enabled tools in a single turn. Only uses enabled connectors: rag, gemini_connectors, github, sharepoint.",
+  "eval_cases": [
+    {
+      "eval_id": "multi_rag_and_sharepoint",
+      "conversation": [
+        {
+          "invocation_id": "g1b2c3d4-0001-4000-8000-000000000001",
+          "user_content": {
+            "parts": [{ "text": "Pull the leave policy from my knowledge base and check if there is anything newer in SharePoint." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the leave policy information from your knowledge base and SharePoint." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_knowledge_base",
+                "args": { "query": "leave policy" }
+              },
+              {
+                "name": "search_sharepoint",
+                "args": { "query": "leave policy" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "multi_github_code_and_sharepoint",
+      "conversation": [
+        {
+          "invocation_id": "g1b2c3d4-0002-4000-8000-000000000002",
+          "user_content": {
+            "parts": [{ "text": "Search GitHub code and SharePoint for any documentation about our authentication flow." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is what I found about the authentication flow across GitHub and SharePoint." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_github_code",
+                "args": { "query": "authentication flow" }
+              },
+              {
+                "name": "search_sharepoint",
+                "args": { "query": "authentication flow" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "multi_rag_and_gemini_onboarding",
+      "conversation": [
+        {
+          "invocation_id": "g1b2c3d4-0003-4000-8000-000000000003",
+          "user_content": {
+            "parts": [{ "text": "Find the onboarding guide — check my knowledge base and also search all connected sources." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the onboarding information from your knowledge base and all connected sources." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_knowledge_base",
+                "args": { "query": "onboarding guide" }
+              },
+              {
+                "name": "search_gemini_connectors",
+                "args": { "query": "onboarding" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

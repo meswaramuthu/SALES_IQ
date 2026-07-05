@@ -1,0 +1,11 @@
+{
+  "name": "qualification_agent",
+  "display_name": "Qualification Agent",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: qualification_agent",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/qualification_agent/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}

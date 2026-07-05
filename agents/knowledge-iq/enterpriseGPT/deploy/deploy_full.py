@@ -126,7 +126,7 @@ _REQUIREMENTS = [
     "msal>=1.20.0",
 ]
 
-DISCOVERY_ENGINE_BASE = "https://us-discoveryengine.googleapis.com"
+DISCOVERY_ENGINE_BASE = "https://discoveryengine.googleapis.com"
 
 # ── State helpers ─────────────────────────────────────────────────────────────
 
@@ -470,6 +470,7 @@ def phase4_deploy_agent(
     tools_config_uri: str,
     prompt_uri: str,
     tools_config_data: dict | None = None,
+    force_new: bool = False,
 ) -> str:
     """Package source dir and deploy to Vertex AI Agent Engine. Returns resource name."""
     log.info("")
@@ -487,9 +488,9 @@ def phase4_deploy_agent(
 
     vertexai.init(project=project, location=location, staging_bucket=bucket_uri)
 
-    from agent import root_agent  # noqa: PLC0415  (agent.py is at _PROJECT_ROOT)
+    from agent import root_agent, StreamingAdkApp  # noqa: PLC0415  (agent.py is at _PROJECT_ROOT)
 
-    wrapped = AdkApp(agent=root_agent, enable_tracing=True)
+    wrapped = StreamingAdkApp(agent=root_agent, enable_tracing=True)
 
     # ── Collect env vars for the remote agent ─────────────────────────────────
     # Note: GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are reserved by Agent Engine
@@ -519,7 +520,7 @@ def phase4_deploy_agent(
     # ── Register flat local modules by value (belt-and-suspenders) ───────────
     import importlib as _importlib
     import cloudpickle as _cloudpickle
-    for _local_mod_name in ["prompts", "config", "agent"]:
+    for _local_mod_name in ["prompts", "config", "file_converter", "agent"]:
         try:
             _mod = _importlib.import_module(_local_mod_name)
             _cloudpickle.register_pickle_by_value(_mod)
@@ -540,7 +541,7 @@ def phase4_deploy_agent(
 
     with _tempfile.TemporaryDirectory(prefix="laabu_bundle_") as _tmp_bundle:
         _bundle = Path(_tmp_bundle)
-        for _fname in ["agent.py", "config.py", "prompts.py"]:
+        for _fname in ["agent.py", "config.py", "prompts.py", "file_converter.py"]:
             _src = _PROJECT_ROOT / _fname
             if _src.exists():
                 shutil.copy2(_src, _bundle / _fname)
@@ -560,9 +561,14 @@ def phase4_deploy_agent(
         )
 
         # Priority: AGENT_ENGINE_ID env var → deployment_state.json agent_engine field.
-        _existing_id = os.environ.get("AGENT_ENGINE_ID", "")
-        if not _existing_id and _STATE_FILE.exists():
-            _existing_id = _load_state().get("agent_engine", "")
+        # --force-new bypasses both and always creates a fresh Agent Engine.
+        if force_new:
+            _existing_id = ""
+            log.info("--force-new: creating a brand-new Agent Engine (ignoring any existing ID).")
+        else:
+            _existing_id = os.environ.get("AGENT_ENGINE_ID", "")
+            if not _existing_id and _STATE_FILE.exists():
+                _existing_id = _load_state().get("agent_engine", "")
 
         log.info("Deploying to Vertex AI Agent Engine (this takes 3–6 min) …")
         if _existing_id:
@@ -675,11 +681,11 @@ def phase5_gemini_enterprise(
         project_number=project_number,
         app_id=app_id,
         resource_name=resource_name,
-        display_name="Knowledge IQ",
+        display_name="Laabu Enterprise Search",
         description=(
             "Enterprise knowledge assistant that searches across Vertex AI RAG, "
-            "Gmail, Google Drive, GitHub, Jira, and Confluence with dynamic "
-            "tool enable/disable and runtime prompt management."
+            "Gmail, Google Drive, GitHub, Jira, Confluence, SharePoint, OneDrive, "
+            "Notion and more — with dynamic tool enable/disable and runtime prompt management."
         ),
         auth_resource=auth_resource,
         token=token,
@@ -930,7 +936,7 @@ def _build_args() -> argparse.Namespace:
 
     # Bucket
     p.add_argument("--bucket",
-                   default=os.getenv("STAGING_BUCKET", "").lstrip("gs://"),
+                   default=os.getenv("STAGING_BUCKET", ""),
                    help="GCS bucket name (without gs://) used for staging, config, and prompt files. "
                         "Defaults to <project>-knowledge-iq.")
 
@@ -954,18 +960,20 @@ def _build_args() -> argparse.Namespace:
                    help="GCS URI for prompt.txt. Defaults to gs://<bucket>/knowledge-iq/prompt.txt")
 
     # Gemini Enterprise
-    p.add_argument("--app-id",   default="knowledge-iq",        help="Gemini Enterprise app ID")
-    p.add_argument("--app-name", default="Knowledge IQ",         help="Gemini Enterprise app display name")
+    p.add_argument("--app-id",   default="stratova-gemini_1779267526762", help="Gemini Enterprise app ID")
+    p.add_argument("--app-name", default="Stratova Gemini",      help="Gemini Enterprise app display name")
     p.add_argument("--oauth-client-id",     default=os.getenv("OAUTH_CLIENT_ID", ""))
     p.add_argument("--oauth-client-secret", default=os.getenv("OAUTH_CLIENT_SECRET", ""))
     p.add_argument("--grant-access", nargs="*", metavar="MEMBER",
                    help="IAM members to grant access (e.g. user:you@domain.com)")
 
-    # Skip flags
+    # Skip / force flags
     p.add_argument("--skip-infrastructure", action="store_true",
                    help="Skip Phase 1 (API enablement + bucket check) — use when infra already exists")
     p.add_argument("--skip-gemini-enterprise", action="store_true",
                    help="Skip Gemini Enterprise integration (Agent Engine only)")
+    p.add_argument("--force-new", action="store_true",
+                   help="Always create a brand-new Agent Engine (ignore AGENT_ENGINE_ID and state file)")
 
     # Delete mode
     p.add_argument("--delete",  action="store_true",
@@ -1003,7 +1011,8 @@ def main() -> None:
     # ── DEPLOY MODE ───────────────────────────────────────────────────────────
 
     # Strip gs:// prefix if the user passed a full URI (e.g. --bucket gs://my-bucket)
-    bucket_name = (args.bucket or f"{args.project}-knowledge-iq").removeprefix("gs://")
+    _raw_bucket = args.bucket or f"{args.project}-knowledge-iq"
+    bucket_name = _raw_bucket[5:] if _raw_bucket.startswith("gs://") else _raw_bucket
     state: dict = {
         "project": args.project,
         "location": args.location,
@@ -1057,6 +1066,7 @@ def main() -> None:
         tools_config_uri=config_uri,
         prompt_uri=prompt_uri,
         tools_config_data=config_data,
+        force_new=args.force_new,
     )
     state["agent_engine"] = resource_name
     _save_state(state)

@@ -1,0 +1,157 @@
+{
+  "eval_set_id": "enterpriseGPT_a2a_eval_set",
+  "name": "A2A Sub-Agent Routing Evaluation",
+  "description": "Evaluates the agent's ability to correctly route requests to the CRM Agent and Enrichment Agent via A2A. Args use {} because the agent reformulates the request message — only tool routing is verified.",
+  "eval_cases": [
+    {
+      "eval_id": "a2a_crm_list_deals",
+      "conversation": [
+        {
+          "invocation_id": "f1b2c3d4-0001-4000-8000-000000000001",
+          "user_content": {
+            "parts": [{ "text": "What deals are currently in the Proposal Sent stage in HubSpot?" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the deals in the Proposal Sent stage in HubSpot." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "call_crm_agent",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "a2a_crm_create_contact",
+      "conversation": [
+        {
+          "invocation_id": "f1b2c3d4-0002-4000-8000-000000000002",
+          "user_content": {
+            "parts": [{ "text": "Create a new HubSpot contact for John Smith at Acme Corp — john@acme.com, CEO." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "I have created a new HubSpot contact for John Smith at Acme Corp." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "call_crm_agent",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "a2a_enrichment_by_email",
+      "conversation": [
+        {
+          "invocation_id": "f1b2c3d4-0003-4000-8000-000000000003",
+          "user_content": {
+            "parts": [{ "text": "Enrich the company for this email: cto@innovatecorp.io — what is their headcount and industry?" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the company enrichment data for innovatecorp.io." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "call_enrichment_agent",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "a2a_crm_add_note",
+      "conversation": [
+        {
+          "invocation_id": "f1b2c3d4-0004-4000-8000-000000000004",
+          "user_content": {
+            "parts": [{ "text": "Add a note to the HubSpot contact for sarah@techco.com saying we had a discovery call today." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "I have added a note to sarah@techco.com's HubSpot contact about today's discovery call." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "call_crm_agent",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "a2a_enrichment_firmographics",
+      "conversation": [
+        {
+          "invocation_id": "f1b2c3d4-0005-4000-8000-000000000005",
+          "user_content": {
+            "parts": [{ "text": "Get firmographic data for the company behind james@globalbank.com." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is the firmographic data for globalbank.com." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "call_enrichment_agent",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

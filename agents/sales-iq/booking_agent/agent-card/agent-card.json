@@ -1,0 +1,11 @@
+{
+  "name": "booking_agent",
+  "display_name": "Booking Agent",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: booking_agent",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/booking_agent/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}

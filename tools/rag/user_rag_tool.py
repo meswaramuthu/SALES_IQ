@@ -23,9 +23,25 @@ import mimetypes
 import os
 import re
 import tempfile
+import time
 from typing import Callable
 
 logger = logging.getLogger(__name__)
+
+
+def _rag_call_with_retry(fn, *args, max_retries: int = 2, **kwargs):
+    """Call a Vertex AI RAG function with exponential backoff on 429 quota errors."""
+    delay = 10
+    for attempt in range(max_retries + 1):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            if "429" in str(exc) and attempt < max_retries:
+                logger.warning("RAG quota 429 — retrying in %ds (attempt %d/%d)", delay, attempt + 1, max_retries)
+                time.sleep(delay)
+                delay = min(delay * 2, 60)
+            else:
+                raise
 
 _DRIVE_URL_RE = re.compile(r"https://drive\.google\.com/")
 _SUPPORTED_MIME_EXTS: dict[str, str] = {
@@ -39,6 +55,64 @@ _SUPPORTED_MIME_EXTS: dict[str, str] = {
     "text/x-python": ".py",
     "text/x-sql": ".sql",
 }
+
+
+# ---------------------------------------------------------------------------
+# Inline user-file registry  (replaces stratova_shared.user_file_registry)
+# Registry is a JSON object stored in GCS: { user_id: [rag_file_name, ...] }
+# ---------------------------------------------------------------------------
+
+def _registry_read(registry_uri: str) -> dict:
+    import json
+    if not registry_uri:
+        return {}
+    try:
+        from tools.utils.gcs_utils import read_gcs_text
+        return json.loads(read_gcs_text(registry_uri))
+    except Exception:
+        return {}
+
+
+def _registry_write(registry_uri: str, data: dict) -> None:
+    import json
+    if not registry_uri:
+        return
+    from tools.utils.gcs_utils import write_gcs_text
+    write_gcs_text(registry_uri, json.dumps(data, indent=2), content_type="application/json")
+
+
+def get_user_files(user_id: str, registry_uri: str) -> list:
+    return _registry_read(registry_uri).get(user_id, [])
+
+
+def add_user_files(user_id: str, file_names: list, registry_uri: str) -> None:
+    data = _registry_read(registry_uri)
+    existing = set(data.get(user_id, []))
+    existing.update(file_names)
+    data[user_id] = sorted(existing)
+    _registry_write(registry_uri, data)
+
+
+def is_user_file(user_id: str, file_name: str, registry_uri: str) -> bool:
+    return file_name in get_user_files(user_id, registry_uri)
+
+
+def remove_user_file(user_id: str, file_name: str, registry_uri: str) -> None:
+    data = _registry_read(registry_uri)
+    if user_id in data:
+        data[user_id] = [f for f in data[user_id] if f != file_name]
+        if not data[user_id]:
+            del data[user_id]
+    _registry_write(registry_uri, data)
+
+
+def remove_file_from_all_users(file_name: str, registry_uri: str) -> None:
+    data = _registry_read(registry_uri)
+    for uid in list(data.keys()):
+        data[uid] = [f for f in data[uid] if f != file_name]
+        if not data[uid]:
+            del data[uid]
+    _registry_write(registry_uri, data)
 
 
 # ---------------------------------------------------------------------------
@@ -105,6 +179,23 @@ def _is_admin(user_id: str, cfg_config: dict) -> bool:
     return user_id in cfg_config.get("admin_users", [])
 
 
+def _get_user_departments(user_id: str, registry_uri: str) -> list[str]:
+    """Return the department list for user_id from the GCS department registry.
+
+    Registry format: { "user@company.com": ["engineering", "product"], ... }
+    Returns [] if the registry is missing or the user has no entry (they will
+    still see org-wide files and their own personal files).
+    """
+    if not registry_uri:
+        return []
+    try:
+        data = _registry_read(registry_uri)
+        return list(data.get(user_id, []))
+    except Exception as exc:
+        logger.warning("_get_user_departments: could not read registry '%s': %s", registry_uri, exc)
+        return []
+
+
 def _ext_from_mime(mime_type: str) -> str:
     if mime_type in _SUPPORTED_MIME_EXTS:
         return _SUPPORTED_MIME_EXTS[mime_type]
@@ -124,21 +215,23 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
     # ------------------------------------------------------------------
 
     def search_knowledge_base(query: str, tool_context=None) -> dict:
-        """Search your personal knowledge base using semantic similarity.
+        """Search the organisation knowledge base using semantic similarity.
 
-        Only YOUR uploaded documents are searched — other users' files are
-        never included. Returns an empty result if you have not uploaded
-        any documents yet.
+        Results are scoped to what the authenticated user is allowed to see:
+        - Organisation-wide files  : visible to every authenticated user.
+        - Department files         : visible only to members of that department.
+        - Personal files           : visible only to the owner — never exposed to others, including admins.
+        - Admin users              : see all org files + all department files + their own personal files.
 
         Args:
             query: Natural language question or search terms.
 
         Returns:
-            dict with a list of matching chunks (source, text, score).
+            dict with a list of matching chunks (source, display_name, text, score).
         """
         cfg = config_getter().tools.get("rag")
         if not cfg or not cfg.enabled:
-            return {"status": "disabled", "message": "Personal Knowledge Base is currently disabled."}
+            return {"status": "disabled", "message": "Knowledge base is currently disabled."}
 
         if tool_context is None:
             return {"status": "error", "message": "No tool context available."}
@@ -147,38 +240,78 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
         if err:
             return err
 
-        registry_uri = cfg.config.get("user_file_registry_uri", "")
         corpus = cfg.config.get("corpus", "")
         if not corpus:
             return {"status": "error", "message": "RAG corpus is not configured."}
 
         try:
             from vertexai.preview import rag
+            from tools.rag.rag_ingest_utils import get_accessible_files, get_personal_file_names
 
             _init_for_corpus(corpus)
 
             access_ctrl = _is_access_control_enabled(cfg.config)
-            is_admin = access_ctrl and _is_admin(user_id, cfg.config)
 
-            if not access_ctrl or is_admin:
-                # Access control disabled (open mode) OR admin user: search full corpus.
-                logger.info("search_knowledge_base: full corpus search for user=%s (access_control=%s)", user_id, access_ctrl)
+            if not access_ctrl:
+                # Access control disabled: open mode — full corpus visible to everyone.
+                logger.info("search_knowledge_base: open mode (access_ctrl=False) user=%s", user_id)
                 rag_resource = rag.RagResource(rag_corpus=corpus)
             else:
-                from stratova_shared.user_file_registry import get_user_files
+                from tools.rag.rag_ingest_utils import get_all_registry
 
-                file_names = get_user_files(user_id, registry_uri)
-                if not file_names:
-                    # User has no personal uploads yet — return empty results without
-                    # a blocking message so the LLM continues to search other tools.
-                    logger.info("search_knowledge_base: no personal files for user=%s — returning empty", user_id)
-                    return {"results": [], "count": 0}
-                rag_resource = rag.RagResource(
-                    rag_corpus=corpus,
-                    rag_file_ids=[n.split("/")[-1] for n in file_names],
+                scope_registry_uri     = cfg.config.get("scope_registry_uri", "")
+                user_dept_registry_uri = cfg.config.get("user_department_registry_uri", "")
+                user_file_registry_uri = cfg.config.get("user_file_registry_uri", "")
+
+                is_admin = _is_admin(user_id, cfg.config)
+
+                if scope_registry_uri:
+                    if is_admin:
+                        # Admin: all org files + all department files.
+                        # Personal files are owner-only — admin only sees their own.
+                        registry = get_all_registry(scope_registry_uri)
+                        accessible = list(registry.get("org_files", []))
+                        for dept_file_list in registry.get("dept_files", {}).values():
+                            accessible.extend(dept_file_list)
+                        user_departments: list[str] = []
+                    else:
+                        # Regular user: org files + their own department(s) files.
+                        user_departments = _get_user_departments(user_id, user_dept_registry_uri)
+                        accessible = get_accessible_files(user_departments, scope_registry_uri)
+
+                    # Personal files are ALWAYS owner-only regardless of admin status.
+                    personal_from_scope = get_personal_file_names(user_id, scope_registry_uri)
+                else:
+                    accessible, personal_from_scope, user_departments = [], [], []
+
+                # Files uploaded via this agent's personal upload tools (user_file_registry)
+                personal_from_own = (
+                    get_user_files(user_id, user_file_registry_uri)
+                    if user_file_registry_uri else []
                 )
 
-            response = rag.retrieval_query(
+                all_files = list({*accessible, *personal_from_scope, *personal_from_own})
+
+                if not all_files:
+                    logger.info(
+                        "search_knowledge_base: no accessible files user=%s admin=%s depts=%s",
+                        user_id, is_admin, user_departments,
+                    )
+                    return {"results": [], "count": 0}
+
+                logger.info(
+                    "search_knowledge_base: scoped query user=%s admin=%s depts=%s files=%d "
+                    "(org+dept=%d personal_scope=%d personal_own=%d)",
+                    user_id, is_admin, user_departments, len(all_files),
+                    len(accessible), len(personal_from_scope), len(personal_from_own),
+                )
+                rag_resource = rag.RagResource(
+                    rag_corpus=corpus,
+                    rag_file_ids=[n.split("/")[-1] for n in all_files],
+                )
+
+            response = _rag_call_with_retry(
+                rag.retrieval_query,
                 rag_resources=[rag_resource],
                 text=query,
                 similarity_top_k=cfg.config.get("similarity_top_k", 10),
@@ -188,21 +321,14 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
             for ctx in response.contexts.contexts:
                 source_uri = ctx.source_uri or ""
                 display_name = ctx.source_display_name or source_uri
-                # source_uri is a real URL only for Drive/GCS imports; for
-                # directly-uploaded files it equals the display name (not a URL).
-                if source_uri.startswith("https://"):
-                    web_link = source_uri
-                else:
-                    web_link = ""
-                results.append(
-                    {
-                        "source": source_uri,
-                        "display_name": display_name,
-                        "web_link": web_link,
-                        "text": ctx.text,
-                        "score": round(ctx.score, 4),
-                    }
-                )
+                web_link = source_uri if source_uri.startswith("https://") else ""
+                results.append({
+                    "source": source_uri,
+                    "display_name": display_name,
+                    "web_link": web_link,
+                    "text": ctx.text,
+                    "score": round(ctx.score, 4),
+                })
             return {"results": results, "count": len(results)}
         except Exception as exc:
             logger.error("search_knowledge_base error for user=%s: %s", user_id, exc)
@@ -278,15 +404,14 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
                     tmp.write(file_bytes)
                     tmp_path = tmp.name
                 try:
-                    rag_file = rag.upload_file(
+                    rag_file = _rag_call_with_retry(
+                        rag.upload_file,
                         corpus_name=corpus,
                         path=tmp_path,
                         display_name=chosen_name,
                     )
                 finally:
                     os.unlink(tmp_path)
-
-                from stratova_shared.user_file_registry import add_user_files
 
                 add_user_files(user_id, [rag_file.name], registry_uri)
                 logger.info("upload_attachment: user=%s file=%s", user_id, rag_file.name)
@@ -525,21 +650,20 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
             _init_for_corpus(corpus)
 
             # Snapshot existing files before import so we can identify new ones.
-            before: set[str] = {f.name for f in rag.list_files(corpus_name=corpus)}
+            before: set[str] = {f.name for f in _rag_call_with_retry(rag.list_files, corpus_name=corpus)}
 
-            response = rag.import_files(
+            response = _rag_call_with_retry(
+                rag.import_files,
                 corpus_name=corpus,
                 paths=[source],
                 chunk_size=cfg.config.get("chunk_size", 512),
                 chunk_overlap=cfg.config.get("chunk_overlap", 100),
             )
 
-            after: set[str] = {f.name for f in rag.list_files(corpus_name=corpus)}
+            after: set[str] = {f.name for f in _rag_call_with_retry(rag.list_files, corpus_name=corpus)}
             new_files = list(after - before)
 
             if new_files:
-                from stratova_shared.user_file_registry import add_user_files
-
                 add_user_files(user_id, new_files, registry_uri)
 
             imported = getattr(response, "imported_rag_files_count", len(new_files))
@@ -596,16 +720,16 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
         corpus = cfg.config.get("corpus", "")
 
         access_ctrl = _is_access_control_enabled(cfg.config)
-        is_admin = access_ctrl and _is_admin(user_id, cfg.config)
 
         try:
             from vertexai.preview import rag
+            from tools.rag.rag_ingest_utils import get_all_registry, get_personal_file_names
 
             _init_for_corpus(corpus)
 
-            if not access_ctrl or is_admin:
-                # Access control disabled (open mode) OR admin: list all corpus files.
-                all_corpus_files = list(rag.list_files(corpus_name=corpus))
+            if not access_ctrl:
+                # Open mode: full corpus visible to everyone.
+                all_corpus_files = list(_rag_call_with_retry(rag.list_files, corpus_name=corpus))
                 items = [
                     {
                         "name": f.name,
@@ -615,12 +739,36 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
                     }
                     for f in all_corpus_files
                 ]
-                scope = "all (admin)" if is_admin else "all"
-                return {"files": items, "count": len(items), "scope": scope}
+                return {"files": items, "count": len(items), "scope": "all"}
 
-            # Per-user mode: list only the user's own registered files.
-            from stratova_shared.user_file_registry import get_user_files
+            scope_registry_uri = cfg.config.get("scope_registry_uri", "")
+            is_admin = _is_admin(user_id, cfg.config)
 
+            if is_admin:
+                # Admin: org files + all department files + admin's own personal files.
+                # Other users' personal files are owner-only and excluded.
+                visible: set[str] = set()
+                if scope_registry_uri:
+                    registry = get_all_registry(scope_registry_uri)
+                    visible.update(registry.get("org_files", []))
+                    for dept_file_list in registry.get("dept_files", {}).values():
+                        visible.update(dept_file_list)
+                    visible.update(get_personal_file_names(user_id, scope_registry_uri))
+                visible.update(get_user_files(user_id, registry_uri))
+
+                items = [
+                    {
+                        "name": f.name,
+                        "display_name": f.display_name,
+                        "size_bytes": getattr(f, "size_bytes", None),
+                        "create_time": str(getattr(f, "create_time", "")),
+                    }
+                    for f in _rag_call_with_retry(rag.list_files, corpus_name=corpus)
+                    if f.name in visible
+                ]
+                return {"files": items, "count": len(items), "scope": "admin"}
+
+            # Regular user: list only the files they personally uploaded via this tool.
             file_names = get_user_files(user_id, registry_uri)
             if not file_names:
                 return {
@@ -640,7 +788,7 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
                     "size_bytes": getattr(f, "size_bytes", None),
                     "create_time": str(getattr(f, "create_time", "")),
                 }
-                for f in rag.list_files(corpus_name=corpus)
+                for f in _rag_call_with_retry(rag.list_files, corpus_name=corpus)
                 if f.name in name_set
             ]
             return {"files": items, "count": len(items)}
@@ -679,8 +827,6 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
 
         registry_uri = cfg.config.get("user_file_registry_uri", "")
 
-        from stratova_shared.user_file_registry import is_user_file, remove_user_file
-
         # Admin override only applies when access control is enabled.
         is_admin = _is_access_control_enabled(cfg.config) and _is_admin(user_id, cfg.config)
 
@@ -695,12 +841,11 @@ def build_user_rag_tools(config_getter: Callable) -> list[Callable]:
             from vertexai.preview import rag
 
             _init_for_corpus(file_name)
-            rag.delete_file(name=file_name)
+            _rag_call_with_retry(rag.delete_file, name=file_name)
             # Always clean up the registry entry regardless of who owned the file.
             remove_user_file(user_id, file_name, registry_uri)
             # If admin deleted someone else's file, remove it from the owner's registry too.
             if is_admin:
-                from stratova_shared.user_file_registry import remove_file_from_all_users
                 try:
                     remove_file_from_all_users(file_name, registry_uri)
                 except Exception as reg_exc:

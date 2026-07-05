@@ -1,0 +1,26 @@
+{
+  "prompt": {
+    "source": "gcs",
+    "gcs_uri": "gs://stratova-platform/agents/knowledge-iq/personal-copilot/prompt.txt"
+  },
+  "tools": {
+    "rag": {
+      "enabled": true,
+      "config": {
+        "corpus": "projects/528271267622/locations/us-west1/ragCorpora/4611686018427387904",
+        "personal_registry_uri": "gs://stratova-platform/knowledge-iq/scope_file_registry.json",
+        "scope_registry_uri": "gs://stratova-platform/knowledge-iq/scope_file_registry.json",
+        "similarity_top_k": 5,
+        "vector_distance_threshold": 0.6
+      }
+    }
+  },
+  "sub_agents": {
+    "document_mining_agent": {
+      "enabled": true,
+      "resource_name": "projects/528271267622/locations/us-central1/reasoningEngines/4131857494798499840",
+      "agent_card_url": "gs://stratova-platform/agents/knowledge-iq/document-intelligence/agent-card.json",
+      "description": "Handles document analysis and upload to the personal knowledge base with personal scope."
+    }
+  }
+}

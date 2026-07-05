@@ -1,0 +1,127 @@
+{
+  "eval_set_id": "enterpriseGPT_rag_eval_set",
+  "name": "RAG Knowledge Base Evaluation",
+  "description": "Evaluates the agent's ability to search and list documents in the Vertex AI RAG corpus. Delete case excluded (requires list_my_documents first, which exhausts RAG quota in back-to-back evals).",
+  "eval_cases": [
+    {
+      "eval_id": "rag_search_leave_policy",
+      "conversation": [
+        {
+          "invocation_id": "a1b2c3d4-0001-4000-8000-000000000001",
+          "user_content": {
+            "parts": [{ "text": "Search my knowledge base for information about employee leave policy." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here is what I found in your knowledge base about employee leave policy." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_knowledge_base",
+                "args": { "query": "employee leave policy" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "rag_list_my_documents",
+      "conversation": [
+        {
+          "invocation_id": "a1b2c3d4-0002-4000-8000-000000000002",
+          "user_content": {
+            "parts": [{ "text": "List all the documents I have uploaded to my knowledge base." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Here are the documents you have uploaded to your knowledge base." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "list_my_documents",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "rag_search_q3_okrs",
+      "conversation": [
+        {
+          "invocation_id": "a1b2c3d4-0003-4000-8000-000000000003",
+          "user_content": {
+            "parts": [{ "text": "What do my uploaded documents say about Q3 OKRs?" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "Based on your knowledge base documents, here is what I found about Q3 OKRs." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_knowledge_base",
+                "args": { "query": "Q3 OKRs" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "rag_search_api_authentication",
+      "conversation": [
+        {
+          "invocation_id": "a1b2c3d4-0004-4000-8000-000000000004",
+          "user_content": {
+            "parts": [{ "text": "Find documents in my knowledge base related to API authentication." }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{ "text": "I found the following documents related to API authentication in your knowledge base." }],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "search_knowledge_base",
+                "args": { "query": "API authentication" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "enterpriseGPT",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    }
+  ]
+}

@@ -68,6 +68,20 @@ class ConfigLoader:
 
     # ------------------------------------------------------------------
     def _load(self) -> AgentConfig:
+        # When USE_LOCAL_CONFIG=1, skip GCS and load from the local config file.
+        # Useful during local development to avoid cross-agent env var pollution.
+        local_path = os.path.join(os.path.dirname(__file__), "config", "tools_config.json")
+        if os.environ.get("USE_LOCAL_CONFIG") == "1" and os.path.isfile(local_path):
+            try:
+                with open(local_path) as f:
+                    data = json.load(f)
+                cfg = AgentConfig.model_validate(data)
+                _resolve_env_refs(cfg)
+                logger.info("Loaded agent config from local file: %s", local_path)
+                return cfg
+            except Exception as exc:
+                logger.warning("Local config load failed (%s): %s — falling back to GCS.", local_path, exc)
+
         config_uri = os.environ.get("TOOLS_CONFIG_GCS_URI")
         if config_uri:
             try:
@@ -148,6 +162,16 @@ def _build_from_env() -> AgentConfig:
             config={
                 "service_account_key_gcs_uri": os.environ.get("GDRIVE_SA_KEY_GCS_URI", ""),
                 "user_email": os.environ.get("GDRIVE_USER_EMAIL", ""),
+            },
+        ),
+        "gchat": ToolConfig(
+            enabled=os.environ.get("GCHAT_ENABLED", "false").lower() == "true",
+            config={
+                "service_account_key_gcs_uri": os.environ.get(
+                    "GCHAT_SA_KEY_GCS_URI",
+                    os.environ.get("GDRIVE_SA_KEY_GCS_URI", ""),  # reuse gdrive key by default
+                ),
+                "user_email": os.environ.get("GCHAT_USER_EMAIL", os.environ.get("GDRIVE_USER_EMAIL", "")),
             },
         ),
         "github": ToolConfig(

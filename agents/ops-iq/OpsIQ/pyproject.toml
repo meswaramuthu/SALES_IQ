@@ -1,0 +1,42 @@
+[project]
+name = "ops-iq"
+version = "1.0.0"
+description = "Ops IQ — GCP Resource Monitoring & Observability Agent"
+requires-python = ">=3.11,<3.13"
+
+dependencies = [
+    "google-cloud-aiplatform[adk,agent-engines]>=1.148.1",
+    "google-adk==1.34.3",
+    "mcp==1.27.2",
+    "google-cloud-monitoring>=2.22.0",
+    "google-cloud-quotas>=0.1.5",
+    "google-cloud-firestore>=2.19.0",
+    "google-cloud-storage>=2.0",
+    "google-auth>=2.36.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.32.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "ruff>=0.4.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.pytest.ini_options]
+# "." = OpsIQ/ (agent root), "../../.." = laabu-ai-app/ (for tools.xxx imports)
+pythonpath = [".", "../../.."]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.agent-starter-pack.settings]
+agent_directory = "OpsIQ"
+deployment_targets = ["agent_engine"]

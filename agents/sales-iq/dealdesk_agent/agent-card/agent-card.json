@@ -1,0 +1,11 @@
+{
+  "name": "dealdesk_agent",
+  "display_name": "Dealdesk Agent",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: dealdesk_agent",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/dealdesk_agent/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "revenue_agent",
+  "display_name": "Revenue Agent",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: revenue_agent",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/revenue_agent/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}

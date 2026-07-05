@@ -1,0 +1,11 @@
+{
+  "name": "AURA_orch",
+  "display_name": "Aura Orch",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: AURA_orch",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/AURA_orch/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}

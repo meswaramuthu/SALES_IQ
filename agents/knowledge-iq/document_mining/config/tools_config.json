@@ -1,0 +1,28 @@
+{
+  "prompt": {
+    "source": "local"
+  },
+  "tools": {
+    "rag": {
+      "enabled": true,
+      "config": {
+        "corpus": "env:RAG_CORPUS",
+        "chunk_size": 512,
+        "chunk_overlap": 100,
+        "scope_registry_uri": "env:SCOPE_REGISTRY_URI",
+        "agent_dept_map": {
+          "hr_agent":          "hr",
+          "finance_agent":     "finance",
+          "sales_agent":       "sales",
+          "engineering_agent": "engineering",
+          "legal_agent":       "legal",
+          "marketing_agent":   "marketing",
+          "operations_agent":  "operations",
+          "executive_agent":   "executive",
+          "product_agent":     "product",
+          "support_agent":     "support"
+        }
+      }
+    }
+  }
+}

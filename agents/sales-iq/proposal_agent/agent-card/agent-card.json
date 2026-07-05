@@ -1,0 +1,11 @@
+{
+  "name": "proposal_agent",
+  "display_name": "Proposal Agent",
+  "version": "1.0.0",
+  "description": "Sales IQ sub-agent: proposal_agent",
+  "gcs_card_path": "gs://stratova-platform/agents/sales-iq/proposal_agent/agent-card/agent-card.json",
+  "capabilities": {
+    "streaming": true
+  },
+  "skills": []
+}
